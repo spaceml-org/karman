@@ -134,7 +134,7 @@ def run():
             inp,target=inp.to(device),target.to(device)
             optimizer.zero_grad()
             output = model(inp)
-            train_loss=nn.MSELoss()(output,target.unsqueeze(1),)
+            train_loss=nn.MSELoss()(output,target.unsqueeze(1))
             train_loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -149,7 +149,7 @@ def run():
                     inp_val, target_val=inp_val.to(device), target_val.to(device)
                     optimizer.zero_grad()
                     output_val=model(inp_val)
-                    valid_loss=nn.MSELoss()(output_val target_val.unsqueeze(1),)
+                    valid_loss=nn.MSELoss()(output_val target_val.unsqueeze(1))
                     batches_valid_loss+=float(valid_loss)
                     valid_losses.append(float(valid_loss))
 

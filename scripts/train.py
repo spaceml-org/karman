@@ -134,7 +134,8 @@ def run():
     last_model_path=os.path.join(opt.output_directory,"last_model_"+opt.model+f"_{time_start}")
     best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}")
     for epoch in range(opt.epochs):
-        for batch_index, (inp,target) in enumerate(train_loader):
+        print(f"Epoch: {epoch}")
+        for batch_index, (inp,target) in tqdm(enumerate(train_loader)):
             #TODO: this will be modified once we will be able to handle lags in the NN part
             inp=torch.cat((inp[0],inp[1].squeeze(1),inp[2].squeeze(1),inp[3].squeeze(1)),1)
             inp,target=inp.to(device),target.to(device)

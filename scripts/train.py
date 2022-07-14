@@ -32,7 +32,11 @@ def run():
     parser.add_argument('--weight_decay', help='Weight decay: optimizer parameter', default=0., type=float)
     parser.add_argument('--optimizer', help='Optimizer to use', default='adam', choices=['adam', 'sgd'])
     parser.add_argument('--load_indices',help='If False, then train, validation and test set are computed on the fly; otherwise, they are loaded', default=True, type=bool)
-
+    parser.add_argument('--lag_minutes_omni', help='Time lag (in minutes) to consider for the OMNIWeb data', default=0, type=float)
+    parser.add_argument('--lag_days_fism2_daily', help='Time lag (in days) to consider for the FISM2 daily data', default=0, type=float)
+    parser.add_argument('--lag_minutes_fism2_flare', help='Time lag (in minutes) to consider for the FISM2 flare data', default=0, type=float)
+    
+    
     opt = parser.parse_args()
 
     print('Arguments:\n{}\n'.format(' '.join(sys.argv[1:])))
@@ -47,7 +51,7 @@ def run():
         os.makedirs(opt.output_directory)
         print(f"Created directory for storing results: {opt.output_directory}")
 
-    dataset=karman.ThermosphericDensityDataset(lag_minutes_omni=0, lag_days_fism2_daily=0, lag_minutes_fism2_flare=0)
+    dataset=karman.ThermosphericDensityDataset(lag_minutes_omni=opt.lag_minutes_omni, lag_days_fism2_daily=opt.lag_days_fism2_daily, lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare)
     
     print(f"Train, Valid, Test split:")
     if opt.load_indices==False:

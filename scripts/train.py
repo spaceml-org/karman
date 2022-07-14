@@ -47,7 +47,7 @@ def run():
         os.makedirs(opt.output_directory)
         print(f"Created directory for storing results: {opt.output_directory}")
 
-    dataset=karman.ThermosphericDensityDataset(lag_minutes_omni=10, lag_days_fism2_daily=10, lag_minutes_fism2_flare=150)
+    dataset=karman.ThermosphericDensityDataset(lag_minutes_omni=0, lag_days_fism2_daily=0, lag_minutes_fism2_flare=0)
     
     print(f"Train, Valid, Test split:")
     if opt.load_indices==False:
@@ -111,7 +111,7 @@ def run():
                                                pin_memory=True,
                                                num_workers=opt.num_workers)
     
-    model = FFNN(num_features=len(dataset[0][0]))
+    model = FFNN(num_features=3864)#len(dataset[0][0]))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device is: {device}")
@@ -131,10 +131,12 @@ def run():
     best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}")
     for epoch in range(opt.epochs):
         for batch_index, (inp,target) in enumerate(train_loader):
+            #TODO: this will be modified once we will be able to handle lags in the NN part
+            inp=torch.cat((inp[0],inp[1].squeeze(1),inp[2].squeeze(1),inp[3].squeeze(1)),1)
             inp,target=inp.to(device),target.to(device)
             optimizer.zero_grad()
             output = model(inp)
-            train_loss=nn.MSELoss()(output,target.unsqueeze(1))
+            train_loss=nn.MSELoss()(output, target.unsqueeze(1))
             train_loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -146,10 +148,11 @@ def run():
                 model.train(False)
                 batches_valid_loss=0
                 for batch_index_val, (inp_val, target_val) in enumerate(valid_loader):
+                    inp_val=torch.cat((inp_val[0],inp_val[1].squeeze(1),inp_val[2].squeeze(1),inp_val[3].squeeze(1)),1)
                     inp_val, target_val=inp_val.to(device), target_val.to(device)
                     optimizer.zero_grad()
                     output_val=model(inp_val)
-                    valid_loss=nn.MSELoss()(output_val target_val.unsqueeze(1))
+                    valid_loss=nn.MSELoss()(output_val, target_val.unsqueeze(1))
                     batches_valid_loss+=float(valid_loss)
                     valid_losses.append(float(valid_loss))
 

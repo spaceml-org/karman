@@ -113,10 +113,10 @@ class ThermosphericDensityDataset(Dataset):
         idx_omniweb=self.date_to_index(date, self._date_start_omni, 60)
 
         #print(date, self.dates_fism2_flare[idx_fism2_flare], self.dates_fism2_daily[idx_fism2_daily], self.dates_omni[idx_omniweb])
-        inp = torch.tensor(self.data_thermo_matrix[index,:])#,\
-               #torch.tensor(self.fism2_flare_irradiance_matrix[idx_fism2_flare-self._lag_fism2_flare:idx_fism2_flare+1]),\
-               #torch.tensor(self.fism2_daily_irradiance_matrix[idx_fism2_daily-self._lag_fism2_daily:idx_fism2_daily+1]),\
-               #torch.tensor(self.data_omni_matrix[idx_omniweb-self._lag_omni:idx_omniweb+1,:])#.to_numpy()
+        inp = torch.tensor(self.data_thermo_matrix[index,:]),\
+               torch.tensor(self.fism2_flare_irradiance_matrix[idx_fism2_flare-self._lag_fism2_flare:idx_fism2_flare+1]),\
+               torch.tensor(self.fism2_daily_irradiance_matrix[idx_fism2_daily-self._lag_fism2_daily:idx_fism2_daily+1]),\
+               torch.tensor(self.data_omni_matrix[idx_omniweb-self._lag_omni:idx_omniweb+1,:])#.to_numpy()
         out = torch.tensor(self.thermospheric_density[index])
         return inp, out
 

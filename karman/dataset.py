@@ -15,7 +15,10 @@ class ThermosphericDensityDataset(Dataset):
         lag_minutes_omni=0,
         lag_days_fism2_daily=0,
         lag_minutes_fism2_flare=0,
-        features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__'],
+        features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
+                                    'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
+                                    'NRLMSISE00__thermospheric_density__[kg/m**3]',
+                                    'JB08__thermospheric_density__[kg/m**3]'],
         features_to_exclude_omni=['all__dates_datetime__',
                                   'omniweb__#_of_points_in_imf_averages__',
                                   'omniweb__#_of_points_in_plasma_averages__',
@@ -67,6 +70,7 @@ class ThermosphericDensityDataset(Dataset):
         self.data_thermo.reset_index(drop=True, inplace=True)
         #we now store the dates:
         self.dates_thermo=self.data_thermo['all__dates_datetime__']
+        self.thermospheric_density=self.data_thermo['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].to_numpy().astype(np.float32)
         self.data_thermo.drop(features_to_exclude_thermo, axis=1, inplace=True)
 
         #I now move the fism2 flare data into a numpy matrix:
@@ -78,9 +82,7 @@ class ThermosphericDensityDataset(Dataset):
         #Normalization:
         if normalize:
             print("Normalizing data:")
-#            dict_normalization=np.load(normalization_dictionary_path,allow_pickle='TRUE').item()
-#            thermo_columns=list(set(columns).intersection(set(dataset.data_thermo.columns)))
-#            dict_normalization['feature']
+            #TODO: implement on the fly normalization here
 
     @lru_cache()
     def index_to_date(self, index, date_start, delta_seconds):
@@ -111,10 +113,12 @@ class ThermosphericDensityDataset(Dataset):
         idx_omniweb=self.date_to_index(date, self._date_start_omni, 60)
 
         #print(date, self.dates_fism2_flare[idx_fism2_flare], self.dates_fism2_daily[idx_fism2_daily], self.dates_omni[idx_omniweb])
-        return torch.tensor(self.data_thermo_matrix[index,:])#,\
+        inp = torch.tensor(self.data_thermo_matrix[index,:])#,\
                #torch.tensor(self.fism2_flare_irradiance_matrix[idx_fism2_flare-self._lag_fism2_flare:idx_fism2_flare+1]),\
                #torch.tensor(self.fism2_daily_irradiance_matrix[idx_fism2_daily-self._lag_fism2_daily:idx_fism2_daily+1]),\
                #torch.tensor(self.data_omni_matrix[idx_omniweb-self._lag_omni:idx_omniweb+1,:])#.to_numpy()
+        out = torch.tensor(self.thermospheric_density[index])
+        return inp, out
 
     def __len__(self):
         return len(self.data_thermo)

@@ -107,7 +107,7 @@ class ThermosphericDensityDataset(Dataset):
             for i in range(len(self.omni_mins)):
                 self.data_omni_matrix[:,i]=self.minmax_normalize(self.data_omni_matrix[:,i], min_=self.omni_mins[i], max_=self.omni_maxs[i])
             
-            print(f"\nNormalizing irradiance")
+            print(f"\nNormalizing irradiance, features: {self.data_fism2_flare.columns} and {self.data_fism2_daily.columns}")
             self.fism2_flare_irradiance_mins=np.abs(self.fism2_flare_irradiance_matrix.min(axis=0))
             self.fism2_flare_log_min=[]
             self.fism2_flare_log_max=[]

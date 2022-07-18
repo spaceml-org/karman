@@ -96,27 +96,33 @@ class ThermosphericDensityDataset(Dataset):
         #Normalization:
         if normalize:
             print("\nNormalizing data:")
-            print(f"\nNormalizing thermospheric data, features: {self.data_thermo.columns}")
+            print(f"\nNormalizing thermospheric data, features: {list(self.data_thermo.columns)}")
             self.thermo_mins=self.data_thermo_matrix.min(axis=0)
             self.thermo_maxs=self.data_thermo_matrix.max(axis=0)
             for i in range(len(self.thermo_mins)):
                 self.data_thermo_matrix[:,i]=self.minmax_normalize(self.data_thermo_matrix[:,i], min_=self.thermo_mins[i], max_=self.thermo_maxs[i])
-            print(f"\nNormalizing omniweb data, features: {self.data_omni.columns}")
+            print(f"\nNormalizing omniweb data, features: {list(self.data_omni.columns)}")
             self.omni_mins=self.data_omni_matrix.min(axis=0)
             self.omni_maxs=self.data_omni_matrix.max(axis=0)
             for i in range(len(self.omni_mins)):
                 self.data_omni_matrix[:,i]=self.minmax_normalize(self.data_omni_matrix[:,i], min_=self.omni_mins[i], max_=self.omni_maxs[i])
             
-            print(f"\nNormalizing irradiance, features: {self.data_fism2_flare.columns} and {self.data_fism2_daily.columns}")
+            print(f"\nNormalizing irradiance, features: {list(self.data_fism2_flare.columns)} and {self.data_fism2_daily.columns}")
             self.fism2_flare_irradiance_mins=np.abs(self.fism2_flare_irradiance_matrix.min(axis=0))
             self.fism2_flare_log_min=[]
             self.fism2_flare_log_max=[]
-            for i,_ in tqdm(enumerate(range(self.fism2_flare_irradiance_matrix.shape[1]))):
+            for i in tqdm(range(self.fism2_flare_irradiance_matrix.shape[1])):
                 fism2_flare_normalized=np.log(self.fism2_flare_irradiance_matrix[:,i]+self.fism2_flare_irradiance_mins[i]+1e-16)
                 fism2_flare_normalized=np.ma.masked_invalid(fism2_flare_normalized)
                 self.fism2_flare_log_min.append(fism2_flare_normalized.min())
                 self.fism2_flare_log_max.append(fism2_flare_normalized.max())                
                 self.fism2_flare_irradiance_matrix[:,i]=self.minmax_normalize(fism2_flare_normalized, self.fism2_flare_log_min[-1], self.fism2_flare_log_max[-1])
+            
+            print("\nNormalizing ground truth thermospheric density, feature name: "+'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]')
+            thermospheric_density_log=np.log(self.thermospheric_density*1e12)
+            self.thermospheric_density_log_min=thermospheric_density_log.min()
+            self.thermospheric_density_log_max=thermospheric_density_log.max()
+            self.thermospheric_density=self.minmax_normalize(thermospheric_density_log, self.thermospheric_density_log_min, self.thermospheric_density_log_max)
             
 
     @lru_cache()

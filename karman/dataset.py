@@ -11,7 +11,7 @@ class ThermosphericDensityDataset(Dataset):
     def __init__(
         self,
         directory='/home/jupyter/',
-        normalize=False,
+        normalize=True,
         lag_minutes_omni=0,
         lag_days_fism2_daily=0,
         lag_minutes_fism2_flare=0,
@@ -19,12 +19,26 @@ class ThermosphericDensityDataset(Dataset):
                                     'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
                                     'NRLMSISE00__thermospheric_density__[kg/m**3]',
                                     'JB08__thermospheric_density__[kg/m**3]'],
-        features_to_exclude_omni=['all__dates_datetime__',
-                                  'omniweb__#_of_points_in_imf_averages__',
-                                  'omniweb__#_of_points_in_plasma_averages__',
+        features_to_exclude_omni=['all__dates_datetime__', 
                                   'omniweb__id_for_imf_spacecraft__',
                                   'omniweb__id_for_sw_plasma_spacecraft__',
-                                  'omniweb__percent_of_interpolation__'],
+                                  'omniweb__#_of_points_in_imf_averages__',
+                                  'omniweb__#_of_points_in_plasma_averages__',
+                                  'omniweb__percent_of_interpolation__',
+                                  'omniweb__timeshift__[s]',
+                                  'omniweb__rms_timeshift__[s]',
+                                  'omniweb__rms_min_variance__[s**2]',
+                                  'omniweb__time_btwn_observations__[s]',
+                                  'omniweb__rms_sd_b_scalar__[nT]',
+                                  'omniweb__rms_sd_b_field_vector__[nT]',
+                                  'omniweb__flow_pressure__[nPa]',
+                                  'omniweb__electric_field__[mV/m]',
+                                  'omniweb__plasma_beta__',
+                                  'omniweb__alfven_mach_number__',
+                                  'omniweb__magnetosonic_mach_number__',
+                                  'omniweb__s/cx_gse__[Re]', 
+                                  'omniweb__s/cy_gse__[Re]', 
+                                  'omniweb__s/cz_gse__[Re]'],
         features_to_exclude_fism2_daily=['fism2_daily__uncertainty__',
                                          'all__dates_datetime__'],
         features_to_exclude_fism2_flare=['fism2_flare__uncertainty__',
@@ -74,15 +88,36 @@ class ThermosphericDensityDataset(Dataset):
         self.data_thermo.drop(features_to_exclude_thermo, axis=1, inplace=True)
 
         #I now move the fism2 flare data into a numpy matrix:
-        self.fism2_flare_irradiance_matrix=np.stack(self.data_fism2_flare['fism2_flare__irradiance__[W/m**2/nm]'].to_numpy())
-        self.fism2_daily_irradiance_matrix=np.stack(self.data_fism2_daily['fism2_daily__irradiance__[W/m**2/nm]'].to_numpy())
+        self.fism2_flare_irradiance_matrix=np.stack(self.data_fism2_flare['fism2_flare__irradiance__[W/m**2/nm]'].to_numpy()).astype(np.float32)
+        self.fism2_daily_irradiance_matrix=np.stack(self.data_fism2_daily['fism2_daily__irradiance__[W/m**2/nm]'].to_numpy()).astype(np.float32)
 
         self.data_thermo_matrix=self.data_thermo.to_numpy().astype(np.float32)
         self.data_omni_matrix=self.data_omni.to_numpy().astype(np.float32)
         #Normalization:
         if normalize:
-            print("Normalizing data:")
-            #TODO: implement on the fly normalization here
+            print("\nNormalizing data:")
+            print(f"\nNormalizing thermospheric data, features: {self.data_thermo.columns}")
+            self.thermo_mins=self.data_thermo_matrix.min(axis=0)
+            self.thermo_maxs=self.data_thermo_matrix.max(axis=0)
+            for i in range(len(self.thermo_mins)):
+                self.data_thermo_matrix[:,i]=self.minmax_normalize(self.data_thermo_matrix[:,i], min_=self.thermo_mins[i], max_=self.thermo_maxs[i])
+            print(f"\nNormalizing omniweb data, features: {self.data_omni.columns}")
+            self.omni_mins=self.data_omni_matrix.min(axis=0)
+            self.omni_maxs=self.data_omni_matrix.max(axis=0)
+            for i in range(len(self.omni_mins)):
+                self.data_omni_matrix[:,i]=self.minmax_normalize(self.data_omni_matrix[:,i], min_=self.omni_mins[i], max_=self.omni_maxs[i])
+            
+            print(f"\nNormalizing irradiance")
+            self.fism2_flare_irradiance_mins=np.abs(self.fism2_flare_irradiance_matrix.min(axis=0))
+            self.fism2_flare_log_min=[]
+            self.fism2_flare_log_max=[]
+            for i,_ in tqdm(enumerate(range(self.fism2_flare_irradiance_matrix.shape[1]))):
+                fism2_flare_normalized=np.log(self.fism2_flare_irradiance_matrix[:,i]+self.fism2_flare_irradiance_mins[i]+1e-16)
+                fism2_flare_normalized=np.ma.masked_invalid(fism2_flare_normalized)
+                self.fism2_flare_log_min.append(fism2_flare_normalized.min())
+                self.fism2_flare_log_max.append(fism2_flare_normalized.max())                
+                self.fism2_flare_irradiance_matrix[:,i]=self.minmax_normalize(fism2_flare_normalized, self.fism2_flare_log_min[-1], self.fism2_flare_log_max[-1])
+            
 
     @lru_cache()
     def index_to_date(self, index, date_start, delta_seconds):
@@ -104,6 +139,14 @@ class ThermosphericDensityDataset(Dataset):
         delta_date=date-date_start
         return math.floor(delta_date.total_seconds()/delta_seconds)
 
+    def meanstd_normalize(self, values, mean, std):
+        values = (values-mean)/(std)
+        return values
+
+    def minmax_normalize(self, values, min_, max_):
+        values = (values - min_)/(max_ - min_)
+        return values
+    
     #@lru_cache(maxsize=4096)
     def __getitem__(self, index):
         date = self.dates_thermo[index]

@@ -63,9 +63,6 @@ class DensityPredictor(nn.Module):
         self.model_lstm_omni=LSTMPredictor(input_size=input_size_omni, output_size=output_size_omni, lstm_size=128, dropout=dropout)
         self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare+output_size_fism2_daily+output_size_omni)
     def forward(self, x):
-        out_fism2_flare=model.model_lstm_fism2_flare(x[1])
-        out_fism2_daily=model.model_lstm_fism2_flare(x[2])
-        out_omni=model.model_lstm_omni.forward(x[3])
         x=torch.cat((x[0],self.model_lstm_fism2_flare(x[1]),self.model_lstm_fism2_daily(x[2]),self.model_lstm_omni.forward(x[3])),axis=1)
         x=self.ffnn(x)
         return x

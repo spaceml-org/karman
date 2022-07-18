@@ -1,4 +1,4 @@
 __version__ = '0.0.1'
 
 from .dataset import ThermosphericDensityDataset
-from .nn import FFNN
+from .nn import FFNN, LSTMPredictor, DensityPredictor

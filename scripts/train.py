@@ -93,7 +93,15 @@ def run():
     print(f"Train set proportion: {len(train_indices)/len(dataset)*100} %")
     print(f"Validation set proportion: {len(val_indices)/len(dataset)*100} %")
     print(f"Test set proportion: {len(test_indices)/len(dataset)*100} %")
+    
+    train_indices=np.array(train_indices)
+    val_indices=np.array(val_indices)
+    test_indices=np.array(test_indices)
 
+    train_indices=train_indices[train_indices<len(dataset)]
+    val_indices=val_indices[val_indices<len(dataset)]
+    test_indices=test_indices[test_indices<len(dataset)]
+    
     #I perform the dataset split, creating train, valid, test dataloaders:
     train_sampler=SubsetRandomSampler(train_indices)
     valid_sampler=SubsetRandomSampler(val_indices)

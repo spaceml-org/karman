@@ -16,8 +16,8 @@ class ThermosphericDensityDataset(Dataset):
         lag_days_fism2_daily=0,
         lag_minutes_fism2_flare=0,
         wavelength_bands_to_skip=10,
-        exclude_fism2=True,
-        exclude_omni=True,
+        exclude_fism2=False,
+        exclude_omni=False,
         features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
                                     'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
                                     'NRLMSISE00__thermospheric_density__[kg/m**3]',
@@ -159,6 +159,11 @@ class ThermosphericDensityDataset(Dataset):
             self.thermospheric_density_log_min=thermospheric_density_log.min()
             self.thermospheric_density_log_max=thermospheric_density_log.max()
             self.thermospheric_density=self.minmax_normalize(thermospheric_density_log, self.thermospheric_density_log_min, self.thermospheric_density_log_max)
+            print("\nFinished normalizing data.")
+
+    def unscale_density(self, scaled_density):
+        logged_density = (scaled_density * (self.thermospheric_density_log_max - self.thermospheric_density_log_min)) + self.thermospheric_density_log_min
+        return np.exp(logged_density)/10e12
 
     @lru_cache()
     def index_to_date(self, index, date_start, delta_seconds):

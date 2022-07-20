@@ -38,6 +38,7 @@ def run():
     parser.add_argument('--lag_minutes_fism2_flare', help='Time lag (in minutes) to consider for the FISM2 flare data', default=0, type=float)
     parser.add_argument('--exclude_fism2', action='store_true')
     parser.add_argument('--exclude_omni', action='store_true')
+    parser.add_argument('--test_mode', action='store_true')
 
 
     opt = parser.parse_args()
@@ -64,6 +65,9 @@ def run():
         lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare
     )
 
+    #TODO Sort out how we deal with these indices. Storing the indices
+    # is a bad way to go because the indices change based on the lag
+    # Is there a way of generating them quickly? with parallelisaton...probably.
     print(f"Train, Valid, Test split:")
     if opt.load_indices==False:
         years = list(range(2003, 2022))
@@ -126,17 +130,15 @@ def run():
                                                batch_size=opt.batch_size,
                                                pin_memory=True,
                                                num_workers=opt.num_workers)
-    test_loader  = torch.utils.data.DataLoader(Subset(dataset, test_indices),
-                                               batch_size=opt.batch_size,
-                                               pin_memory=True,
-                                               num_workers=opt.num_workers)
 
     if opt.model == 'FeedForwardDensityPredictor':
         # Will only use an FFNN with just the thermo static features data
-        model = FeedForwardDensityPredictor(num_features=len(dataset.data_thermo.columns))
+        model = FeedForwardDensityPredictor(
+            num_features=dataset.data_thermo_matrix.shape[1]
+        )
     if opt.model == 'FullFeatureDensityPredictor':
         model = FullFeatureDensityPredictor(
-            input_size_thermo=len(dataset.data_thermo.columns),
+            input_size_thermo=dataset.data_thermo_matrix.shape[1],
             input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
             input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
             input_size_omni=dataset.data_omni_matrix.shape[1]
@@ -171,6 +173,10 @@ def run():
             optimizer.zero_grad()
             wandb.log({'train_loss': train_loss.item()})
             i_total+=1
+            if opt.test_mode and i % 5 == 0:
+                # Quickly test whether script is working on a much
+                # smaller train iteration
+                break
 
         print("Validation\n")
         model.eval()
@@ -188,6 +194,16 @@ def run():
 
         if epoch_validation_loss < best_validation_loss:
             best_validation_loss = epoch_validation_loss
+            #TODO this is very similar to simply evaluating on the
+            # validation set. Can probably be combined
+            test_results = karman.Benchmark(
+                batch_size=opt.batch_size,
+                num_workers=opt.num_workers,
+                data_directory=opt.data_directory
+            ).evaluate_model(dataset, model)
+            wandb.log({
+                'Test Results': test_results
+            })
             print(f"Saving best model to: {best_model_path} \n")
             torch.save(model.state_dict(), best_model_path)
 

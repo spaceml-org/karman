@@ -29,6 +29,7 @@ class FeedForwardDensityPredictor(nn.Module):
         x = self.ffnn(batch['static_features'])
         return x
 
+
 class LSTMPredictor(nn.Module):
     def __init__(self, input_size, output_size=10, lstm_size=100, lstm_depth=2, dropout=0.2):
         super().__init__()

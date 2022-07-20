@@ -6,13 +6,12 @@ import time
 
 import datetime
 import karman
-from karman import FFNN
+from karman import FeedForwardDensityPredictor, FullFeatureDensityPredictor
 import numpy as np
 import torch
 from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import Subset
 from tqdm import tqdm
 import wandb
@@ -23,7 +22,7 @@ def run():
 
     parser = argparse.ArgumentParser(description='Karman', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--seed', help='Random number seed', default=1, type=int)
-    parser.add_argument('--model', help='Models to use', default='FFNN', choices=['FFNN'])
+    parser.add_argument('--model', help='Models to use', default='FeedForwardDensityPredictor', choices=['FeedForwardDensityPredictor', 'FullFeatureDensityPredictor'])
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--output_directory', help='Output directory', default='output_directory')
@@ -132,9 +131,16 @@ def run():
                                                pin_memory=True,
                                                num_workers=opt.num_workers)
 
-    if opt.model == 'FFNN':
+    if opt.model == 'FeedForwardDensityPredictor':
         # Will only use an FFNN with just the thermo static features data
-        model = FFNN(num_features=len(dataset.data_thermo.columns))
+        model = FeedForwardDensityPredictor(num_features=len(dataset.data_thermo.columns))
+    if opt.model == 'FullFeatureDensityPredictor':
+        model = FullFeatureDensityPredictor(
+            input_size_thermo=len(dataset.data_thermo.columns),
+            input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
+            input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
+            input_size_omni=dataset.data_omni_matrix.shape[1]
+        )
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device is: {device}")

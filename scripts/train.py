@@ -13,7 +13,9 @@ from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data import Subset
 from tqdm import tqdm
+import wandb
 
 def run():
     print('Karman training script')
@@ -27,7 +29,7 @@ def run():
     parser.add_argument('--output_directory', help='Output directory', default='output_directory')
     parser.add_argument('--epochs', '-n', help='Number of epochs', default=10, type=int)
     parser.add_argument('--valid_every', default=1500, type=int)
-#    parser.add_argument('--gpus', default=0, type=int)
+    parser.add_argument('--data_directory', default='/home/jupyter/', type=str)
     parser.add_argument('--learning_rate', help='learning rate to use', default=1e-4, type=float)
     parser.add_argument('--weight_decay', help='Weight decay: optimizer parameter', default=0., type=float)
     parser.add_argument('--optimizer', help='Optimizer to use', default='adam', choices=['adam', 'sgd'])
@@ -35,24 +37,34 @@ def run():
     parser.add_argument('--lag_minutes_omni', help='Time lag (in minutes) to consider for the OMNIWeb data', default=0, type=float)
     parser.add_argument('--lag_days_fism2_daily', help='Time lag (in days) to consider for the FISM2 daily data', default=0, type=float)
     parser.add_argument('--lag_minutes_fism2_flare', help='Time lag (in minutes) to consider for the FISM2 flare data', default=0, type=float)
-    
-    
+    parser.add_argument('--exclude_fism2', action='store_true')
+    parser.add_argument('--exclude_omni', action='store_true')
+
+
     opt = parser.parse_args()
+    wandb.init(project='karman', config=vars(opt))
 
     print('Arguments:\n{}\n'.format(' '.join(sys.argv[1:])))
     print('Config:')
     pprint.pprint(vars(opt), depth=2, width=1)
     print()
 
-    isExist = os.path.exists(opt.output_directory)
+    output_directory_exists = os.path.exists(opt.output_directory)
 
-    if not isExist:
+    if not output_directory_exists:
         # Create a new directory because it does not exist
         os.makedirs(opt.output_directory)
         print(f"Created directory for storing results: {opt.output_directory}")
 
-    dataset=karman.ThermosphericDensityDataset(lag_minutes_omni=opt.lag_minutes_omni, lag_days_fism2_daily=opt.lag_days_fism2_daily, lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare)
-    
+    dataset=karman.ThermosphericDensityDataset(
+        directory=opt.data_directory,
+        exclude_omni=opt.exclude_omni,
+        exclude_fism2=opt.exclude_fism2,
+        lag_minutes_omni=opt.lag_minutes_omni,
+        lag_days_fism2_daily=opt.lag_days_fism2_daily,
+        lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare
+    )
+
     print(f"Train, Valid, Test split:")
     if opt.load_indices==False:
         years = list(range(2003, 2022))
@@ -73,57 +85,56 @@ def run():
             val_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['validation'])))].values)
             test_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['test'])))].values)
             print("Saving created indices to files:")
-            with open("train_indices.txt", 'w') as output:
+            with open(os.path.join(opt.data_directory, "train_indices.txt"), 'w') as output:
                 for row in train_indices:
                     output.write(str(row) + '\n')
-            with open("val_indices.txt", 'w') as output:
+            with open(os.path.join(opt.data_directory, "val_indices.txt"), 'w') as output:
                 for row in val_indices:
                     output.write(str(row) + '\n')
-            with open("test_indices.txt", 'w') as output:
+            with open(os.path.join(opt.data_directory, "test_indices.txt"), 'w') as output:
                 for row in test_indices:
                     output.write(str(row) + '\n')
     else:
-        with open('train_indices.txt') as f:
+        with open(os.path.join(opt.data_directory, "train_indices.txt"), 'r') as f:
             train_indices = [int(line.rstrip()) for line in f]
-        with open('val_indices.txt') as f:
+        with open(os.path.join(opt.data_directory, "val_indices.txt"), 'r') as f:
             val_indices = [int(line.rstrip()) for line in f]
-        with open('test_indices.txt') as f:
+        with open(os.path.join(opt.data_directory, "test_indices.txt"), 'r') as f:
             test_indices = [int(line.rstrip()) for line in f]
 
-    print(f"Train set proportion: {len(train_indices)/len(dataset)*100} %")
-    print(f"Validation set proportion: {len(val_indices)/len(dataset)*100} %")
-    print(f"Test set proportion: {len(test_indices)/len(dataset)*100} %")
-    
+    print(f"Train set proportion: {round(len(train_indices)/len(dataset)*100, 2)} %, {len(train_indices)}/{len(dataset)}")
+    print(f"Validation set proportion: {round(len(val_indices)/len(dataset)*100,2)} %, {len(val_indices)}/{len(dataset)}")
+    print(f"Test set proportion: {round(len(test_indices)/len(dataset)*100, 2)} %, {len(test_indices)}/{len(dataset)}")
+    print(f"Total dataset length: {len(dataset)}")
+
     train_indices=np.array(train_indices)
     val_indices=np.array(val_indices)
     test_indices=np.array(test_indices)
 
+    #TODO fix issue with indices in datasets being too high...
     train_indices=train_indices[train_indices<len(dataset)]
     val_indices=val_indices[val_indices<len(dataset)]
     test_indices=test_indices[test_indices<len(dataset)]
-    
-    #I perform the dataset split, creating train, valid, test dataloaders:
-    train_sampler=SubsetRandomSampler(train_indices)
-    valid_sampler=SubsetRandomSampler(val_indices)
-    test_sampler=SubsetRandomSampler(test_indices)
 
-    train_loader = torch.utils.data.DataLoader(dataset,
+    # Create train, valid, test dataloaders. Shuffle is false for validation and test
+    # datasets to preserve order.
+    train_loader = torch.utils.data.DataLoader(Subset(dataset, train_indices),
                                                batch_size=opt.batch_size,
-                                               sampler=train_sampler,
+                                               pin_memory=True,
+                                               shuffle=True,
+                                               num_workers=opt.num_workers)
+    valid_loader = torch.utils.data.DataLoader(Subset(dataset, val_indices),
+                                               batch_size=opt.batch_size,
                                                pin_memory=True,
                                                num_workers=opt.num_workers)
-    valid_loader = torch.utils.data.DataLoader(dataset,
+    test_loader  = torch.utils.data.DataLoader(Subset(dataset, test_indices),
                                                batch_size=opt.batch_size,
-                                               sampler=valid_sampler,
                                                pin_memory=True,
                                                num_workers=opt.num_workers)
-    test_loader = torch.utils.data.DataLoader(dataset,
-                                               batch_size=opt.batch_size,
-                                               sampler=test_sampler,
-                                               pin_memory=True,
-                                               num_workers=opt.num_workers)
-    
-    model = FFNN(num_features=3864)#len(dataset[0][0]))
+
+    if opt.model == 'FFNN':
+        # Will only use an FFNN with just the thermo static features data
+        model = FFNN(num_features=len(dataset.data_thermo.columns))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device is: {device}")
@@ -132,53 +143,48 @@ def run():
         optimizer=optim.Adam(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
     elif opt.optimizer=='sgd':
         optimizer=optim.SGD(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
-    model.train()
-    train_losses=[]
-    valid_losses=[]
-    avg_valid_losses=[]
+
     time_start=datetime.datetime.now()
 
     i_total=0
-    last_model_path=os.path.join(opt.output_directory,"last_model_"+opt.model+f"_{time_start}")
     best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}")
+
+    best_validation_loss = np.inf
     for epoch in range(opt.epochs):
         print(f"Epoch: {epoch}")
-        for batch_index, (inp,target) in tqdm(enumerate(train_loader)):
+        model.train()
+        for batch in tqdm(train_loader):
             #TODO: this will be modified once we will be able to handle lags in the NN part
-            inp=torch.cat((inp[0],inp[1].squeeze(1),inp[2].squeeze(1),inp[3].squeeze(1)),1)
-            inp,target=inp.to(device),target.to(device)
+            #send all batch elements to device
+            [batch.__setitem__(key, batch[key].to(device)) for key in batch.keys()]
             optimizer.zero_grad()
-            output = model(inp)
-            train_loss=nn.MSELoss()(output, target.unsqueeze(1))
+            output = model(batch)
+            train_loss=nn.MSELoss()(output, batch['target'].unsqueeze(1))
             train_loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            train_losses.append(float(train_loss))
-            print((epoch, float(train_loss)),end='\r')
-
-            if i_total%opt.valid_every==0:
-                print("Validation\n")
-                model.train(False)
-                batches_valid_loss=0
-                for batch_index_val, (inp_val, target_val) in enumerate(valid_loader):
-                    inp_val=torch.cat((inp_val[0],inp_val[1].squeeze(1),inp_val[2].squeeze(1),inp_val[3].squeeze(1)),1)
-                    inp_val, target_val=inp_val.to(device), target_val.to(device)
-                    optimizer.zero_grad()
-                    output_val=model(inp_val)
-                    valid_loss=nn.MSELoss()(output_val, target_val.unsqueeze(1))
-                    batches_valid_loss+=float(valid_loss)
-                    valid_losses.append(float(valid_loss))
-
-                batches_valid_loss=batches_valid_loss/len(test_loader)
-                avg_valid_losses.append(batches_valid_loss)
-                if batches_valid_loss<=min(avg_valid_losses):
-                    print(f"Saving best model to: {best_model_path} \n")
-                    torch.save(model.state_dict(), best_model_path)
-                model.train(True)
+            wandb.log({'train_loss': train_loss.item()})
             i_total+=1
-    print(f"Saving last model to: {last_model_path}\n")
-    torch.save(model.state_dict(), last_model_path)
-    
+
+        print("Validation\n")
+        model.eval()
+        validation_losses = []
+        with torch.no_grad():
+            for batch in tqdm(valid_loader):
+                #send all batch elements to device
+                [batch.__setitem__(key, batch[key].to(device)) for key in batch.keys()]
+                output = model(batch)
+                validation_loss = nn.MSELoss()(output, batch['target'].unsqueeze(1))
+                validation_losses.append(float(validation_loss))
+
+        epoch_validation_loss =  np.mean(validation_losses)
+        wandb.log({'validation_loss': epoch_validation_loss})
+
+        if epoch_validation_loss < best_validation_loss:
+            best_validation_loss = epoch_validation_loss
+            print(f"Saving best model to: {best_model_path} \n")
+            torch.save(model.state_dict(), best_model_path)
+
 if __name__ == "__main__":
     time_start = time.time()
     run()

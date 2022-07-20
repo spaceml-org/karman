@@ -17,7 +17,7 @@ class FFNN(nn.Module):
         )
 
     def forward(self, x):
-        x = self.fc1(x)
+        x = self.fc1(x['static_features'])
         return x
 
 class LSTMPredictor(nn.Module):
@@ -28,7 +28,7 @@ class LSTMPredictor(nn.Module):
         self.lstm_size = lstm_size
         self.lstm_depth = lstm_depth
         self.dropout = dropout
-        
+
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.lstm_size, num_layers=lstm_depth, batch_first=True, dropout=dropout if dropout else 0)
         self.fc1 = nn.Linear(lstm_size, self.output_size)
         if dropout is not None:
@@ -46,11 +46,11 @@ class LSTMPredictor(nn.Module):
         #print(x.shape)
         x = x.view(batch_size, -1)
         return x[:,-self.output_size:]
-    
+
 class DensityPredictor(nn.Module):
-    def __init__(self, 
+    def __init__(self,
                  input_size_thermo,
-                 input_size_fism2_flare, 
+                 input_size_fism2_flare,
                  input_size_fism2_daily,
                  input_size_omni,
                  output_size_fism2_flare=10,

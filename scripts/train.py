@@ -135,6 +135,8 @@ def run():
                                                pin_memory=True,
                                                num_workers=opt.num_workers)
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     if opt.model == 'FeedForwardDensityPredictor':
         # Will only use an FFNN with just the thermo static features data
         model = FeedForwardDensityPredictor(
@@ -147,8 +149,9 @@ def run():
             input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
             input_size_omni=dataset.data_omni_matrix.shape[1]
         )
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.device_count()>1:
+        print(f"Parallelizing the model on {torch.cuda.device_count()} GPUs")
+        model=nn.DataParallel(model)
     print(f"Device is: {device}")
     model.to(device)
     if opt.optimizer=='adam':

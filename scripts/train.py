@@ -163,14 +163,34 @@ def run():
 
     time_start=datetime.datetime.now()
 
-    i_total=0
     best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}")
     last_model_path=os.path.join(opt.output_directory,"last_model_"+opt.model+f"_{time_start}")
 
     best_validation_loss = np.inf
     for epoch in range(opt.epochs):
-#        print(f"Epoch: {epoch}")
-        model.train()
+        if epoch%opt.valid_every==0:
+            print("Validation\n")
+            #model.eval()
+            model.train(False)
+            batches_valid_loss=0
+            validation_losses=[]
+            with torch.no_grad():
+                for batch_val in tqdm(valid_loader):
+                    [batch_val.__setitem__(key, batch_val[key].to(device)) for key in batch_val.keys()]
+                    output_val = model(batch_val)
+                    validation_loss = nn.MSELoss()(output, batch_val['target'].unsqueeze(1))
+                    validation_losses.append(float(validation_loss))
+            epoch_validation_loss =  np.mean(validation_losses)
+            wandb.log({'validation_loss': epoch_validation_loss})
+
+            if epoch_validation_loss < best_validation_loss:
+                best_validation_loss = epoch_validation_loss
+                #TODO this is very similar to simply evaluating on the
+                # validation set. Can probably be combined
+                print(f"Saving best model to: {best_model_path} \n")
+                torch.save(model.state_dict(), best_model_path)
+                best_model=model
+            model.train(True)
         for batch in tqdm(train_loader):
             #TODO: this will be modified once we will be able to handle lags in the NN part
             #send all batch elements to device
@@ -184,41 +204,19 @@ def run():
             print((epoch, float(train_loss)),end='\r')
             wandb.log({'train_loss': train_loss.item()})
             #i_total+=1
-            if i_total%opt.valid_every==0:
-                print("Validation\n")
-                #model.eval()
-                model.train(False)
-                batches_valid_loss=0
-                validation_losses=[]
-                with torch.no_grad():
-                    for batch_val in tqdm(valid_loader):
-                        [batch_val.__setitem__(key, batch_val[key].to(device)) for key in batch_val.keys()]
-                        output_val = model(batch_val)
-                        validation_loss = nn.MSELoss()(output, batch_val['target'].unsqueeze(1))
-                        validation_losses.append(float(validation_loss))
-                epoch_validation_loss =  np.mean(validation_losses)
-                wandb.log({'validation_loss': epoch_validation_loss})
-
-                if epoch_validation_loss < best_validation_loss:
-                    best_validation_loss = epoch_validation_loss
-                    #TODO this is very similar to simply evaluating on the
-                    # validation set. Can probably be combined
-                    test_results = karman.Benchmark(
-                        batch_size=opt.batch_size,
-                        num_workers=opt.num_workers,
-                        data_directory=opt.data_directory
-                    ).evaluate_model(dataset, model)
-                    wandb.log({
-                        'Validation Results': test_results
-                    })
-                    print(f"Saving best model to: {best_model_path} \n")
-                    torch.save(model.state_dict(), best_model_path)
-                model.train(True)
-            if opt.test_mode and i % 5 == 0:
+    print("Benchmarking on the test set (using the best model in terms of validation loss):")
+    test_results = karman.Benchmark(
+        batch_size=opt.batch_size,
+        num_workers=opt.num_workers,
+        data_directory=opt.data_directory
+    ).evaluate_model(dataset, best_model)
+    wandb.log({
+        'Test Results': test_results
+    })
+#            if opt.test_mode and i % 5 == 0:
                 # Quickly test whether script is working on a much
                 # smaller train iteration
-                break
-        i_total+=1
+#                break
     print(f"Saving last model to: {last_model_path}\n")
     torch.save(model.state_dict(),last_model_path)
 

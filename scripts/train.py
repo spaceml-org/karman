@@ -191,7 +191,7 @@ def run():
                 batches_valid_loss=0
                 validation_losses=[]
                 with torch.no_grad():
-                    for batch_val in valid_loader:
+                    for batch_val in tqdm(valid_loader):
                         [batch_val.__setitem__(key, batch_val[key].to(device)) for key in batch_val.keys()]
                         output_val = model(batch_val)
                         validation_loss = nn.MSELoss()(output, batch_val['target'].unsqueeze(1))
@@ -218,6 +218,7 @@ def run():
                 # Quickly test whether script is working on a much
                 # smaller train iteration
                 break
+        i_total+=1
     print(f"Saving last model to: {last_model_path}\n")
     torch.save(model.state_dict(),last_model_path)
 

@@ -129,11 +129,13 @@ def run():
                                                batch_size=opt.batch_size,
                                                pin_memory=True,
                                                shuffle=True,
-                                               num_workers=opt.num_workers)
+                                               num_workers=opt.num_workers,
+                                               drop_last=True)
     valid_loader = torch.utils.data.DataLoader(Subset(dataset, val_indices),
                                                batch_size=opt.batch_size,
                                                pin_memory=True,
-                                               num_workers=opt.num_workers)
+                                               num_workers=opt.num_workers,
+                                               drop_last=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

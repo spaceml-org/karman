@@ -178,7 +178,7 @@ def run():
                 for batch_val in tqdm(valid_loader):
                     [batch_val.__setitem__(key, batch_val[key].to(device)) for key in batch_val.keys()]
                     output_val = model(batch_val)
-                    validation_loss = nn.MSELoss()(output, batch_val['target'].unsqueeze(1))
+                    validation_loss = nn.MSELoss()(output_val, batch_val['target'].unsqueeze(1))
                     validation_losses.append(float(validation_loss))
             epoch_validation_loss =  np.mean(validation_losses)
             wandb.log({'validation_loss': epoch_validation_loss})

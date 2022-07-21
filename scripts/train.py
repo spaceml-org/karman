@@ -216,6 +216,7 @@ def run():
                 # Quickly test whether script is working on a much
                 # smaller train iteration
                 break
+        i_total+=1
     print(f"Saving last model to: {last_model_path}\n")
     torch.save(model.state_dict(),last_model_path)
 

@@ -213,7 +213,7 @@ def run():
                     })
                     print(f"Saving best model to: {best_model_path} \n")
                     torch.save(model.state_dict(), best_model_path)
-
+                model.train(True)
             if opt.test_mode and i % 5 == 0:
                 # Quickly test whether script is working on a much
                 # smaller train iteration

@@ -16,6 +16,7 @@ class ThermosphericDensityDataset(Dataset):
         lag_days_fism2_daily=0,
         lag_minutes_fism2_flare=0,
         wavelength_bands_to_skip=10,
+        omniweb_downsampling_ratio=1,
         exclude_fism2=False,
         exclude_omni=False,
         features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
@@ -64,11 +65,14 @@ class ThermosphericDensityDataset(Dataset):
         self.data_thermo=self.data_thermo.sort_values('all__dates_datetime__')
 
         if not self.exclude_omni:
-            print("Loading OMNIWeb (1min) Dataset:")
-            _data_omni=pd.read_hdf(os.path.join(directory, 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'))
-            self.data_omni=_data_omni.iloc[::10,:]
-            del _data_omni
-            self.data_omni.reset_index(drop=True, inplace=True)
+            print(f"Loading OMNIWeb ({omniweb_downsampling_ratio} min) Dataset:")
+            if omniweb_downsampling_ratio!=1:
+                _data_omni=pd.read_hdf(os.path.join(directory, 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'))
+                self.data_omni=_data_omni.iloc[::omniweb_downsampling_ratio,:]
+                del _data_omni
+                self.data_omni.reset_index(drop=True, inplace=True)
+            else:
+                self.data_omni=pd.read_hdf(os.path.join(directory, 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'))
             self.dates_omni=self.data_omni['all__dates_datetime__']
             self._date_start_omni=self.dates_omni.iloc[0]
             self.data_omni.drop(features_to_exclude_omni, axis=1, inplace=True)

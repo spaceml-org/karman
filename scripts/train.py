@@ -27,7 +27,7 @@ def run():
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--output_directory', help='Output directory', default='output_directory')
     parser.add_argument('--epochs', '-n', help='Number of epochs', default=10, type=int)
-    parser.add_argument('--valid_every', default=1500, type=int)
+    parser.add_argument('--valid_every', default=25000, type=int)
     parser.add_argument('--data_directory', default='/home/jupyter/', type=str)
     parser.add_argument('--learning_rate', help='learning rate to use', default=1e-4, type=float)
     parser.add_argument('--weight_decay', help='Weight decay: optimizer parameter', default=0., type=float)

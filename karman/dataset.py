@@ -52,7 +52,7 @@ class ThermosphericDensityDataset(Dataset):
         self._directory = directory
         self._lag_fism2_daily=round(lag_days_fism2_daily)
         self._lag_fism2_flare=round(lag_minutes_fism2_flare/10)
-        self._lag_omni=round(lag_minutes_omni)
+        self._lag_omni=round(lag_minutes_omni/omniweb_downsampling_ratio)
         self.wavelength_bands_to_skip = wavelength_bands_to_skip
         self.exclude_fism2 = exclude_fism2
         self.exclude_omni = exclude_omni

@@ -56,7 +56,7 @@ class ThermosphericDensityDataset(Dataset):
         self.exclude_fism2 = exclude_fism2
         self.exclude_omni = exclude_omni
         self.fism2_resolution = 600
-        self.omni_resolution = 60
+        self.omni_resolution = 600
         self.fism2_daily_resolution = 86400
 
         print("Loading Thermospheric Density Dataset:")
@@ -65,7 +65,10 @@ class ThermosphericDensityDataset(Dataset):
 
         if not self.exclude_omni:
             print("Loading OMNIWeb (1min) Dataset:")
-            self.data_omni=pd.read_hdf(os.path.join(directory, 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'))
+            _data_omni=pd.read_hdf(os.path.join(directory, 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'))
+            self.data_omni=_data_omni.iloc[::10,:]
+            del _data_omni
+            self.data_omni.reset_index(drop=True, inplace=True)
             self.dates_omni=self.data_omni['all__dates_datetime__']
             self._date_start_omni=self.dates_omni.iloc[0]
             self.data_omni.drop(features_to_exclude_omni, axis=1, inplace=True)

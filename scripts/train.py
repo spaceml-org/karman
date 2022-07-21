@@ -39,6 +39,7 @@ def run():
     parser.add_argument('--exclude_fism2', action='store_true')
     parser.add_argument('--exclude_omni', action='store_true')
     parser.add_argument('--test_mode', action='store_true')
+    parser.add_argument('--wavelength_bands_to_skip', help='Wavelengths downsampling proportion: base is 0.1 nm (e.g. 10 means every 1nm)', default=10, type=int)
 
 
     opt = parser.parse_args()
@@ -62,7 +63,8 @@ def run():
         exclude_fism2=opt.exclude_fism2,
         lag_minutes_omni=opt.lag_minutes_omni,
         lag_days_fism2_daily=opt.lag_days_fism2_daily,
-        lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare
+        lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare,
+        wavelength_bands_to_skip=opt.wavelength_bands_to_skip
     )
 
     #TODO Sort out how we deal with these indices. Storing the indices

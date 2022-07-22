@@ -50,8 +50,8 @@ class LSTMPredictor(nn.Module):
 
     def forward(self, x):
         # Reset the hidden state
-        h0 = torch.randn(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
-        c0 = torch.randn(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
+        h0 = torch.zeros(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
+        c0 = torch.zeros(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
         x, _ = self.lstm(x, (h0, c0))
         # Just use the final item in the sequence.
         x = self.fc1(x[:, -1,:])

@@ -114,7 +114,7 @@ class ThermosphericDensityDataset(Dataset):
                 :,
                 range(0,self.fism2_flare_irradiance_matrix.shape[1],self.wavelength_bands_to_skip)
             ]
-            self.fism2_flare_irradiance_matrix[np.isinf(self.flare_daily_irradiance_matrix)]=0.
+            self.fism2_flare_irradiance_matrix[np.isinf(self.fism2_flare_irradiance_matrix)]=0.
             self.fism2_daily_irradiance_matrix[np.isinf(self.fism2_daily_irradiance_matrix)]=0.
             #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available):
             self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_fism2_flare[self._lag_fism2_flare])]

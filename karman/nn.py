@@ -47,16 +47,15 @@ class LSTMPredictor(nn.Module):
             dropout=dropout
         )
         self.fc1 = nn.Linear(lstm_size, self.output_size)
-        self.dropout1 = nn.Dropout(p=dropout)
 
     def forward(self, x):
-        batch_size=x.size(0)
-        x, _ = self.lstm(x)
-        x = self.dropout1(x[:, -1,:])
-        x = torch.relu(x)
-        x = self.fc1(x)
-        x = x.view(batch_size, -1)
-        return x[:,-self.output_size:]
+        # Reset the hidden state
+        h0 = torch.randn(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
+        c0 = torch.randn(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
+        x, _ = self.lstm(x, (h0, c0))
+        # Just use the final item in the sequence.
+        x = self.fc1(x[:, -1,:])
+        return x
 
 class FullFeatureDensityPredictor(nn.Module):
     def __init__(self,

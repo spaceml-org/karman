@@ -3,15 +3,21 @@
 ## Download and store data
 
 ### Download data
-to download data, run: 
+to download data, run:
 ```
-gsutil -m cp -r gs://2022-nasa-solar-drag-benchmarking-landing/LISIRD_solar_irradiance_data/processed/fism2_flare_v1/downsampled/10min/* data_directory/fism2_flare_v1/downsampled/10min/
+gsutil -m cp -r gs://2022-nasa-solar-drag-benchmarking-landing/LISIRD_solar_irradiance_data/processed/fism2_flare_v1/downsampled/10min/* data_directory/
 
-gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/LISIRD_solar_irradiance_data/processed/fism2_daily_v1/fism2_daily.h5 data_directory/fism2_daily_v1/
+gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/LISIRD_solar_irradiance_data/processed/fism2_daily_v1/fism2_daily.h5 data_directory/
 
-gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/OMNIweb_high_resolution/processed/data_omniweb_v1/omniweb_1min_data_2001_2022.h5 data_directory/data_omniweb_v1/
+gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/OMNIweb_high_resolution/processed/data_omniweb_v1/omniweb_1min_data_2001_2022.h5 data_directory/
 
-gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/empirical_density_models_data/jb08_nrlmsise00/jb08_nrlmsise_all_v1/jb08_nrlmsise_all.h5 data_directory/jb08_nrlmsise_all_v1/
+gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/empirical_density_models_data/jb08_nrlmsise00/jb08_nrlmsise_all_v1/jb08_nrlmsise_all.h5 data_directory/
+
+gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/train_indices.txt data_directory/
+
+gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/val_indices.txt data_directory/
+
+gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/train_indices.txt data_directory/
 ```
 
 ### Store data

@@ -17,7 +17,7 @@ gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/train_indices.txt data_
 
 gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/val_indices.txt data_directory/
 
-gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/train_indices.txt data_directory/
+gsutil cp gs://2022-nasa-solar-drag-benchmarking-landing/test_indices.txt data_directory/
 ```
 
 ### Store data

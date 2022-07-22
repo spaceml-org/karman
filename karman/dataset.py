@@ -76,8 +76,8 @@ class ThermosphericDensityDataset(Dataset):
             self.dates_omni=self.data_omni['all__dates_datetime__']
             self._date_start_omni=self.dates_omni.iloc[0]
             self.data_omni.drop(features_to_exclude_omni, axis=1, inplace=True)
-            self.data_omni_matrix[np.isinf(data_omni_matrix)]=0.
             self.data_omni_matrix=self.data_omni.to_numpy().astype(np.float32)
+            self.data_omni_matrix[np.isinf(self.data_omni_matrix)]=0.
             #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available):
             self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_omni[self._lag_omni])]
             #self.data_thermo.reset_index(drop=True, inplace=True)

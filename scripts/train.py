@@ -189,7 +189,7 @@ def run():
                 # validation set. Can probably be combined
                 print(f"Saving best model to: {best_model_path} \n")
                 torch.save(model.state_dict(), best_model_path)
-                best_model=model
+
             model.train(True)
         for batch in tqdm(train_loader):
             #TODO: this will be modified once we will be able to handle lags in the NN part
@@ -205,11 +205,14 @@ def run():
             wandb.log({'train_loss': train_loss.item()})
             #i_total+=1
     print("Benchmarking on the test set (using the best model in terms of validation loss):")
+    print(f"Saving last model to: {last_model_path}\n")
+    torch.save(model.state_dict(),last_model_path)
+    model.load_state_dict(torch.load(best_model_path))
     test_results = karman.Benchmark(
         batch_size=opt.batch_size,
         num_workers=opt.num_workers,
         data_directory=opt.data_directory
-    ).evaluate_model(dataset, best_model)
+    ).evaluate_model(dataset, model)
     wandb.log({
         'Test Results': test_results
     })
@@ -217,8 +220,7 @@ def run():
                 # Quickly test whether script is working on a much
                 # smaller train iteration
 #                break
-    print(f"Saving last model to: {last_model_path}\n")
-    torch.save(model.state_dict(),last_model_path)
+
 
 if __name__ == "__main__":
     time_start = time.time()

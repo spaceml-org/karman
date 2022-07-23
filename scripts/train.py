@@ -41,6 +41,37 @@ def run():
     parser.add_argument('--test_mode', action='store_true')
     parser.add_argument('--wavelength_bands_to_skip', help='FISM2 Irradiance data wavelengths downsampling proportion: base is 0.1 nm (e.g. 10 means every 1nm)', default=10, type=int)
     parser.add_argument('--omniweb_downsampling_ratio', help='OMNIWeb downsampling proportion in time: base is 1 min (e.g. 10 means every 10 min)', default=10, type=int)
+    parser.add_argument('--features_to_exclude_omni', help='Features to exclude for OMNI data', default=['all__dates_datetime__',
+                                                                                                        'omniweb__id_for_imf_spacecraft__',
+                                                                                                        'omniweb__id_for_sw_plasma_spacecraft__',
+                                                                                                        'omniweb__#_of_points_in_imf_averages__',
+                                                                                                        'omniweb__#_of_points_in_plasma_averages__',
+                                                                                                        'omniweb__percent_of_interpolation__',
+                                                                                                        'omniweb__timeshift__[s]',
+                                                                                                        'omniweb__rms_timeshift__[s]',
+                                                                                                        'omniweb__rms_min_variance__[s**2]',
+                                                                                                        'omniweb__time_btwn_observations__[s]',
+                                                                                                        'omniweb__rms_sd_b_scalar__[nT]',
+                                                                                                        'omniweb__rms_sd_b_field_vector__[nT]',
+                                                                                                        'omniweb__flow_pressure__[nPa]',
+                                                                                                        'omniweb__electric_field__[mV/m]',
+                                                                                                        'omniweb__plasma_beta__',
+                                                                                                        'omniweb__alfven_mach_number__',
+                                                                                                        'omniweb__magnetosonic_mach_number__',
+                                                                                                        'omniweb__s/cx_gse__[Re]',
+                                                                                                        'omniweb__s/cy_gse__[Re]',
+                                                                                                        'omniweb__s/cz_gse__[Re]'], nargs='+', type=str)
+    parser.add_argument('--features_to_exclude_thermo', help='Features to exclude for thermospheric data', default=['all__dates_datetime__',
+                                                                                                                    'tudelft_thermo__satellite__',
+                                                                                                                    'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
+                                                                                                                    'NRLMSISE00__thermospheric_density__[kg/m**3]',
+                                                                                                                    'JB08__thermospheric_density__[kg/m**3]'], nargs='+', type=str)
+    parser.add_argument('--features_to_exclude_fism2_flare', help='Features to exclude for FISM2 flare data', default=['fism2_flare__uncertainty__',
+                                                                                                                       'all__dates_datetime__'], nargs='+', type=str)
+    parser.add_argument('--features_to_exclude_fism2_daily', help='Features to exclude for FISM2 daily data', default=['fism2_daily__uncertainty__',
+                                                                                                                        'all__dates_datetime__'], nargs='+', type=str)
+
+
 
 
     opt = parser.parse_args()
@@ -66,7 +97,11 @@ def run():
         lag_days_fism2_daily=opt.lag_days_fism2_daily,
         lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare,
         wavelength_bands_to_skip=opt.wavelength_bands_to_skip,
-        omniweb_downsampling_ratio=opt.omniweb_downsampling_ratio
+        omniweb_downsampling_ratio=opt.omniweb_downsampling_ratio,
+        features_to_exclude_omni=opt.features_to_exclude_omni,
+        features_to_exclude_thermo=opt.features_to_exclude_thermo,
+        features_to_exclude_fism2_flare=opt.features_to_exclude_fism2_flare,
+        features_to_exclude_fism2_daily=opt.features_to_exclude_fism2_daily
     )
 
     #TODO Sort out how we deal with these indices. Storing the indices

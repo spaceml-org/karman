@@ -70,12 +70,15 @@ def run():
                                                                                                                        'all__dates_datetime__'], nargs='+', type=str)
     parser.add_argument('--features_to_exclude_fism2_daily', help='Features to exclude for FISM2 daily data', default=['fism2_daily__uncertainty__',
                                                                                                                         'all__dates_datetime__'], nargs='+', type=str)
-
+    parser.add_argument('--run_name', default='', help='Run name to be stored in wandb')
 
 
 
     opt = parser.parse_args()
     wandb.init(project='karman', config=vars(opt))
+    if opt.run_name != '':
+        wandb.run.name = opt.run_name
+        wandb.run.save()
 
     print('Arguments:\n{}\n'.format(' '.join(sys.argv[1:])))
     print('Config:')

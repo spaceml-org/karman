@@ -6,7 +6,7 @@ import time
 
 import datetime
 import karman
-from karman import FeedForwardDensityPredictor, FullFeatureDensityPredictor
+from karman import FeedForwardDensityPredictor, FullFeatureDensityPredictor, Fism2DailyDensityPredictor, Fism2FlareDensityPredictor, OmniDensityPredictor
 import numpy as np
 import torch
 from torch import optim

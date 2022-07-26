@@ -264,7 +264,9 @@ def run():
                 #TODO this is very similar to simply evaluating on the
                 # validation set. Can probably be combined
                 print(f"Saving best model to: {best_model_path} \n")
-                torch.save(model.state_dict(), best_model_path)
+                torch.save({'state_dict': model.state_dict(),
+                            'opt': opt}, best_model_path)                
+#torch.save(model.state_dict(), best_model_path)
 
             model.train(True)
         for batch in tqdm(train_loader):
@@ -282,8 +284,9 @@ def run():
             #i_total+=1
     print("Benchmarking on the test set (using the best model in terms of validation loss):")
     print(f"Saving last model to: {last_model_path}\n")
-    torch.save(model.state_dict(),last_model_path)
-    model.load_state_dict(torch.load(best_model_path))
+    torch.save({'state_dict':model.state_dict(),
+                'opt':opt},last_model_path)
+    model.load_state_dict(torch.load(best_model_path)['state_dict'])
     test_results = karman.Benchmark(
         batch_size=opt.batch_size,
         num_workers=opt.num_workers,

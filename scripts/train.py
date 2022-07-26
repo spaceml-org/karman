@@ -40,7 +40,8 @@ def run():
     parser.add_argument('--lag_minutes_omni', help='Time lag (in minutes) to consider for the OMNIWeb data', default=0, type=float)
     parser.add_argument('--lag_days_fism2_daily', help='Time lag (in days) to consider for the FISM2 daily data', default=0, type=float)
     parser.add_argument('--lag_minutes_fism2_flare', help='Time lag (in minutes) to consider for the FISM2 flare data', default=0, type=float)
-    parser.add_argument('--exclude_fism2', action='store_true')
+    parser.add_argument('--exclude_fism2_daily', action='store_true')
+    parser.add_argument('--exclude_fism2_flare', action='store_true')
     parser.add_argument('--exclude_omni', action='store_true')
     parser.add_argument('--test_mode', action='store_true')
     parser.add_argument('--wavelength_bands_to_skip', help='FISM2 Irradiance data wavelengths downsampling proportion: base is 0.1 nm (e.g. 10 means every 1nm)', default=10, type=int)
@@ -98,7 +99,8 @@ def run():
     dataset=karman.ThermosphericDensityDataset(
         directory=opt.data_directory,
         exclude_omni=opt.exclude_omni,
-        exclude_fism2=opt.exclude_fism2,
+        exclude_fism2_flare=opt.exclude_fism2_flare,
+        exclude_fism2_daily=opt.exclude_fism2_daily,
         lag_minutes_omni=opt.lag_minutes_omni,
         lag_days_fism2_daily=opt.lag_days_fism2_daily,
         lag_minutes_fism2_flare=opt.lag_minutes_fism2_flare,

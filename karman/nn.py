@@ -85,7 +85,7 @@ class Fism2DailyDensityPredictor(nn.Module):
                  dropout=0.):
         super().__init__()
         self.model_lstm_fism2_daily=LSTMPredictor(input_size=input_size_fism2_daily, output_size=output_size_fism2_daily, dropout=dropout)
-        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare+output_size_fism2_daily+output_size_omni)
+        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_daily)
 
     def forward(self, batch):
         flare_daily_features = self.model_lstm_fism2_daily(batch['fism2_daily'])
@@ -105,7 +105,7 @@ class Fism2FlareDensityPredictor(nn.Module):
                  dropout=0.):
         super().__init__()
         self.model_lstm_fism2_flare=LSTMPredictor(input_size=input_size_fism2_flare, output_size=output_size_fism2_flare, dropout=dropout)
-        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare+output_size_fism2_daily+output_size_omni)
+        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare)
 
     def forward(self, batch):
         flare_features = self.model_lstm_fism2_flare(batch['fism2_flare'])

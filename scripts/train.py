@@ -22,7 +22,11 @@ def run():
 
     parser = argparse.ArgumentParser(description='Karman', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--seed', help='Random number seed', default=1, type=int)
-    parser.add_argument('--model', help='Models to use', default='FeedForwardDensityPredictor', choices=['FeedForwardDensityPredictor', 'FullFeatureDensityPredictor'])
+    parser.add_argument('--model', help='Models to use', default='FeedForwardDensityPredictor', choices=['FeedForwardDensityPredictor',
+                                                                                                         'FullFeatureDensityPredictor',
+                                                                                                         'Fism2DailyDensityPredictor',
+                                                                                                         'Fism2FlareDensityPredictor',
+                                                                                                         'OmniDensityPredictor'])
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--output_directory', help='Output directory', default='output_directory')

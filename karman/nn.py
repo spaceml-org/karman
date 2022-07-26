@@ -57,6 +57,66 @@ class LSTMPredictor(nn.Module):
         x = self.fc1(x[:, -1,:])
         return x
 
+class OmniDensityPredictor(nn.Module):
+    def __init__(self,
+                 input_size_thermo,
+                 input_size_omni,
+                 output_size_omni=20,
+                 dropout=0.):
+        super().__init__()
+        self.model_lstm_omni=LSTMPredictor(input_size=input_size_omni, output_size=output_size_omni, dropout=dropout)
+        self.ffnn=FFNN(num_features=input_size_thermo+output_size_omni)
+
+    def forward(self, batch):
+        omni_features = self.model_lstm_omni(batch['omni'])
+
+        concatenated_features = torch.cat([
+            batch['static_features'],
+            omni_features
+        ], dim=1)
+        density = self.ffnn(concatenated_features)
+        return density
+
+class Fism2DailyDensityPredictor(nn.Module):
+    def __init__(self,
+                 input_size_thermo,
+                 input_size_fism2_daily,
+                 output_size_fism2_daily=20,
+                 dropout=0.):
+        super().__init__()
+        self.model_lstm_fism2_daily=LSTMPredictor(input_size=input_size_fism2_daily, output_size=output_size_fism2_daily, dropout=dropout)
+        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare+output_size_fism2_daily+output_size_omni)
+
+    def forward(self, batch):
+        flare_daily_features = self.model_lstm_fism2_daily(batch['fism2_daily'])
+
+        concatenated_features = torch.cat([
+            batch['static_features'],
+            flare_daily_features,
+        ], dim=1)
+        density = self.ffnn(concatenated_features)
+        return density
+
+class Fism2FlareDensityPredictor(nn.Module):
+    def __init__(self,
+                 input_size_thermo,
+                 input_size_fism2_flare,
+                 output_size_fism2_flare=20,
+                 dropout=0.):
+        super().__init__()
+        self.model_lstm_fism2_flare=LSTMPredictor(input_size=input_size_fism2_flare, output_size=output_size_fism2_flare, dropout=dropout)
+        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare+output_size_fism2_daily+output_size_omni)
+
+    def forward(self, batch):
+        flare_features = self.model_lstm_fism2_flare(batch['fism2_flare'])
+
+        concatenated_features = torch.cat([
+            batch['static_features'],
+            flare_features,
+        ], dim=1)
+        density = self.ffnn(concatenated_features)
+        return density
+
 class FullFeatureDensityPredictor(nn.Module):
     def __init__(self,
                  input_size_thermo,

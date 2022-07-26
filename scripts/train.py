@@ -73,7 +73,6 @@ def run():
     parser.add_argument('--run_name', default='', help='Run name to be stored in wandb')
 
 
-
     opt = parser.parse_args()
     wandb.init(project='karman', config=vars(opt))
     if opt.run_name != '':
@@ -180,15 +179,48 @@ def run():
     if opt.model == 'FeedForwardDensityPredictor':
         # Will only use an FFNN with just the thermo static features data
         model = FeedForwardDensityPredictor(
-            num_features=dataset.data_thermo_matrix.shape[1]
-        )
-    if opt.model == 'FullFeatureDensityPredictor':
-        model = FullFeatureDensityPredictor(
-            input_size_thermo=dataset.data_thermo_matrix.shape[1],
-            input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
-            input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
-            input_size_omni=dataset.data_omni_matrix.shape[1]
-        )
+                            num_features=dataset.data_thermo_matrix.shape[1]
+                            )
+    elif opt.model=='Fism2FlareDensityPredictor':
+        if opt.exclude_fism2_daily and opt.exclude_omni:
+            model=Fism2FlareDensityPredictor(
+                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
+                            input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
+                            output_size_fism2_flare=20
+                            )
+        else:
+            raise RuntimeError(f"exclude_fism2_daily and exclude_omni are not set to True; while model chosen is {opt.model}")
+    elif opt.model=='Fism2DailyDensityPredictor':
+        if opt.exclude_fism2_flare and opt.exclude_omni:
+            model=Fism2DailyDensityPredictor(
+                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
+                            input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
+                            output_size_fism2_daily=20
+                            )
+        else:
+            raise RuntimeError(f"exclude_fism2_flare and exclude_omni are not set to True; while model chosen is {opt.model}")
+    elif opt.model=='OmniDensityPredictor':
+        if opt.exclude_fism2_daily and opt.exclude_fism2_flare:
+            model=OmniDensityPredictor(
+                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
+                            input_size_omni=dataset.data_omni_matrix.shape[1],
+                            output_size_omni=20
+                            )
+        else:
+            raise RuntimeError(f"exclude_fism2_daily and exclude_fism2_flare are not set to True; while model chosen is {opt.model}")
+    elif opt.model == 'FullFeatureDensityPredictor':
+        if opt.exclude_omni==False and opt.exclude_fism2_flare==False and opt.exclude_fism2_daily==False:
+            model = FullFeatureDensityPredictor(
+                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
+                            input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
+                            input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
+                            input_size_omni=dataset.data_omni_matrix.shape[1],
+                            output_size_fism2_flare=20,
+                            output_size_fism2_daily=20,
+                            output_size_omni=20
+                            )
+        else:
+            raise RuntimeError("exclude_omni, exclude_fism2_daily, exclude_fism2_flare are not all True, FullFeatureDensityPredictor cannot be used")
     if torch.cuda.device_count()>1:
         print(f"Parallelizing the model on {torch.cuda.device_count()} GPUs")
         model=nn.DataParallel(model)

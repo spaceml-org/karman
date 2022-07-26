@@ -213,10 +213,12 @@ class ThermosphericDensityDataset(Dataset):
         date = self.dates_thermo[self.index_list[index]]
         sample = {}
 
-        if not self.exclude_fism2:
-            idx_fism2_flare=self.date_to_index(date, self._date_start_fism2_flare, self.fism2_resolution)
+        if not self.exclude_fism2_daily:
             idx_fism2_daily=self.date_to_index(date, self._date_start_fism2_daily, self.fism2_daily_resolution)
             sample['fism2_daily'] = torch.tensor(self.fism2_daily_irradiance_matrix[idx_fism2_daily-self._lag_fism2_daily:idx_fism2_daily+1])
+        
+        if not self.exclude_fism2_flare:
+            idx_fism2_flare=self.date_to_index(date, self._date_start_fism2_flare, self.fism2_resolution)
             sample['fism2_flare'] = torch.tensor(self.fism2_flare_irradiance_matrix[idx_fism2_flare-self._lag_fism2_flare:idx_fism2_flare+1])
 
         if not self.exclude_omni:

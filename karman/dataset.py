@@ -18,7 +18,8 @@ class ThermosphericDensityDataset(Dataset):
         lag_minutes_fism2_flare=0,
         wavelength_bands_to_skip=10,
         omniweb_downsampling_ratio=1,
-        exclude_fism2=False,
+        exclude_fism2_flare=False,
+        exclude_fism2_daily=False,
         exclude_omni=False,
         features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
                                     'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
@@ -83,13 +84,20 @@ class ThermosphericDensityDataset(Dataset):
             self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_omni[self._lag_omni])]
             #self.data_thermo.reset_index(drop=True, inplace=True)
 
-        if not self.exclude_fism2:
+        if not self.exclude_fism2_daily:
             print("Loading FISM2 Daily Irradiance Dataset:")
             self.data_fism2_daily=pd.read_hdf(os.path.join(directory, 'fism2_daily_v1/fism2_daily.h5'))
             self.dates_fism2_daily=self.data_fism2_daily['all__dates_datetime__']
             self.data_fism2_daily.drop(features_to_exclude_fism2_daily, axis=1, inplace=True)
             self._date_start_fism2_daily=self.dates_fism2_daily.iloc[0]
+            self.fism2_daily_irradiance_matrix=np.stack(self.data_fism2_daily['fism2_daily__irradiance__[W/m**2/nm]'].to_numpy()).astype(np.float32)
+            self.fism2_daily_irradiance_matrix=self.fism2_daily_irradiance_matrix[
+                :,
+                range(0,self.fism2_daily_irradiance_matrix.shape[1],self.wavelength_bands_to_skip)
+            ]
+            self.fism2_daily_irradiance_matrix[np.isinf(self.fism2_daily_irradiance_matrix)]=0.
 
+        if not self.exclude_fism2_flare:
             print("Loading FISM2 Flare (10min) Irradiance Dataset:")
             base_path_fism2_flare=os.path.join(directory, 'fism2_flare_v1/downsampled/10min')
             files_fism2_flare=os.listdir(base_path_fism2_flare)
@@ -106,17 +114,11 @@ class ThermosphericDensityDataset(Dataset):
             self._date_start_fism2_flare=self.dates_fism2_flare.iloc[0]
             #I now move the fism2 flare data into a numpy matrix:
             self.fism2_flare_irradiance_matrix=np.stack(self.data_fism2_flare['fism2_flare__irradiance__[W/m**2/nm]'].to_numpy()).astype(np.float32)
-            self.fism2_daily_irradiance_matrix=np.stack(self.data_fism2_daily['fism2_daily__irradiance__[W/m**2/nm]'].to_numpy()).astype(np.float32)
-            self.fism2_daily_irradiance_matrix=self.fism2_daily_irradiance_matrix[
-                :,
-                range(0,self.fism2_daily_irradiance_matrix.shape[1],self.wavelength_bands_to_skip)
-            ]
             self.fism2_flare_irradiance_matrix=self.fism2_flare_irradiance_matrix[
                 :,
                 range(0,self.fism2_flare_irradiance_matrix.shape[1],self.wavelength_bands_to_skip)
             ]
             self.fism2_flare_irradiance_matrix[np.isinf(self.fism2_flare_irradiance_matrix)]=0.
-            self.fism2_daily_irradiance_matrix[np.isinf(self.fism2_daily_irradiance_matrix)]=0.
             #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available):
             self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_fism2_flare[self._lag_fism2_flare])]
             #self.data_thermo.reset_index(drop=True, inplace=True)
@@ -145,23 +147,27 @@ class ThermosphericDensityDataset(Dataset):
                     self.omni_mins.append(self.data_omni_matrix[:,i].min())
                     self.omni_maxs.append(self.data_omni_matrix[:,i].max())
 
-            if not self.exclude_fism2:
-                print(f"\nNormalizing irradiance, features: {list(self.data_fism2_flare.columns)} and {list(self.data_fism2_daily.columns)}")
-                self.fism2_flare_irradiance_mins=np.abs(self.fism2_flare_irradiance_matrix.min(axis=0))
+            if not self.exclude_fism2_daily:
+                print(f"\nNormalizing FISM2 daily irradiance, features {list(self.data_fism2_daily.columns)}")
                 self.fism2_daily_irradiance_mins=np.abs(self.fism2_daily_irradiance_matrix.min(axis=0))
-                self.fism2_flare_log_min=[]
-                self.fism2_flare_log_max=[]
                 self.fism2_daily_log_min=[]
                 self.fism2_daily_log_max=[]
-                for i in tqdm(range(self.fism2_flare_irradiance_matrix.shape[1])):
-                    fism2_flare_normalized=np.log(self.fism2_flare_irradiance_matrix[:,i]+self.fism2_flare_irradiance_mins[i]+1e-16)
+                for i in tqdm(range(self.fism2_daily_irradiance_matrix.shape[1])):
                     fism2_daily_normalized=np.log(self.fism2_daily_irradiance_matrix[:,i]+self.fism2_daily_irradiance_mins[i]+1e-16)
-                    self.fism2_flare_log_min.append(fism2_flare_normalized.min())
-                    self.fism2_flare_log_max.append(fism2_flare_normalized.max())
-                    self.fism2_flare_irradiance_matrix[:,i]=self.minmax_normalize(fism2_flare_normalized, self.fism2_flare_log_min[-1], self.fism2_flare_log_max[-1])
                     self.fism2_daily_log_min.append(fism2_daily_normalized.min())
                     self.fism2_daily_log_max.append(fism2_daily_normalized.max())
                     self.fism2_daily_irradiance_matrix[:,i]=self.minmax_normalize(fism2_daily_normalized, self.fism2_daily_log_min[-1], self.fism2_daily_log_max[-1])
+
+            if not self.exclude_fism2_flare:
+                print(f"\nNormalizing FISM2 flare irradiance, features: {list(self.data_fism2_flare.columns)}")
+                self.fism2_flare_irradiance_mins=np.abs(self.fism2_flare_irradiance_matrix.min(axis=0))
+                self.fism2_flare_log_min=[]
+                self.fism2_flare_log_max=[]
+                for i in tqdm(range(self.fism2_flare_irradiance_matrix.shape[1])):
+                    fism2_flare_normalized=np.log(self.fism2_flare_irradiance_matrix[:,i]+self.fism2_flare_irradiance_mins[i]+1e-16)
+                    self.fism2_flare_log_min.append(fism2_flare_normalized.min())
+                    self.fism2_flare_log_max.append(fism2_flare_normalized.max())
+                    self.fism2_flare_irradiance_matrix[:,i]=self.minmax_normalize(fism2_flare_normalized, self.fism2_flare_log_min[-1], self.fism2_flare_log_max[-1])
 
             print("\nNormalizing ground truth thermospheric density, feature name: "+'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]')
             thermospheric_density_log=np.log(self.thermospheric_density*1e12)

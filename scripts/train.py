@@ -134,16 +134,16 @@ def run():
             train_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['train'])))].values)
             val_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['validation'])))].values)
             test_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['test'])))].values)
-            print("Saving created indices to files:")
-            with open(os.path.join(opt.data_directory, "train_indices.txt"), 'w') as output:
-                for row in train_indices:
-                    output.write(str(row) + '\n')
-            with open(os.path.join(opt.data_directory, "val_indices.txt"), 'w') as output:
-                for row in val_indices:
-                    output.write(str(row) + '\n')
-            with open(os.path.join(opt.data_directory, "test_indices.txt"), 'w') as output:
-                for row in test_indices:
-                    output.write(str(row) + '\n')
+        print("Saving created indices to files:")
+        with open(os.path.join(opt.data_directory, "train_indices.txt"), 'w') as output:
+            for row in train_indices:
+                output.write(str(row) + '\n')
+        with open(os.path.join(opt.data_directory, "val_indices.txt"), 'w') as output:
+            for row in val_indices:
+                output.write(str(row) + '\n')
+        with open(os.path.join(opt.data_directory, "test_indices.txt"), 'w') as output:
+            for row in test_indices:
+                output.write(str(row) + '\n')
     else:
         with open(os.path.join(opt.data_directory, "train_indices.txt"), 'r') as f:
             train_indices = [int(line.rstrip()) for line in f]

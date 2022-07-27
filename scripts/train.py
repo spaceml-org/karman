@@ -119,9 +119,9 @@ def run():
     if opt.load_indices==False:
         years = list(range(2003, 2022))
         months = np.array(range(1,13))
-        train_idx = [0,1,2,5,6,9,10,11]
+        train_idx = [0,1,2,5,6,8,9,10,11]
         validation_idx = [3,7]
-        test_idx = [4,8]
+        test_idx = [4]
         year_months = {}
         train_indices=[]
         val_indices=[]
@@ -175,6 +175,11 @@ def run():
                                                num_workers=opt.num_workers,
                                                drop_last=True)
     valid_loader = torch.utils.data.DataLoader(Subset(dataset, val_indices),
+                                               batch_size=opt.batch_size,
+                                               pin_memory=True,
+                                               num_workers=opt.num_workers,
+                                               drop_last=True)
+    test_loader = torch.utils.data.DataLoader(Subset(dataset, test_indices),
                                                batch_size=opt.batch_size,
                                                pin_memory=True,
                                                num_workers=opt.num_workers,
@@ -265,7 +270,7 @@ def run():
                 # validation set. Can probably be combined
                 print(f"Saving best model to: {best_model_path} \n")
                 torch.save({'state_dict': model.state_dict(),
-                            'opt': opt}, best_model_path)                
+                            'opt': opt}, best_model_path)
 #torch.save(model.state_dict(), best_model_path)
 
             model.train(True)
@@ -282,6 +287,21 @@ def run():
             print((epoch, float(train_loss)),end='\r')
             wandb.log({'train_loss': train_loss.item()})
             #i_total+=1
+        if epoch%opt.test_every==0:
+            print("Testing\n")
+            #model.eval()
+            model.train(False)
+            batches_test_loss=0
+            test_losses=[]
+            with torch.no_grad():
+                for batch_test in tqdm(test_loader):
+                    [batch_test.__setitem__(key, batch_test[key].to(device)) for key in batch_test.keys()]
+                    output_test = model(batch_test)
+                    test_loss = nn.MSELoss()(output_test, batch_test['target'].unsqueeze(1))
+                    test_losses.append(float(test_loss))
+            epoch_test_loss =  np.mean(test_losses)
+            wandb.log({'test_loss': epoch_test_loss})
+
     print("Benchmarking on the test set (using the best model in terms of validation loss):")
     print(f"Saving last model to: {last_model_path}\n")
     torch.save({'state_dict':model.state_dict(),

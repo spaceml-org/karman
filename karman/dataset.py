@@ -179,7 +179,7 @@ class ThermosphericDensityDataset(Dataset):
 
     def unscale_density(self, scaled_density):
         logged_density = (scaled_density * (self.thermospheric_density_log_max - self.thermospheric_density_log_min)) + self.thermospheric_density_log_min
-        return np.exp(logged_density)/10e12
+        return np.exp(logged_density)/1e12
 
     @lru_cache()
     def index_to_date(self, index, date_start, delta_seconds):

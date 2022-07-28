@@ -49,6 +49,9 @@ class Benchmark():
         #TODO need to find away around this indices reading, its horrible
         with open(os.path.join(self.data_directory, "test_indices.txt"), 'r') as f:
             test_indices = [int(line.rstrip()) for line in f]
+        
+        test_indices=np.array(test_indices)
+        test_indices=test_indices[test_indices<len(dataset)]
         loader = DataLoader(Subset(dataset, test_indices),
                             batch_size=self.batch_size,
                             num_workers=self.num_workers)

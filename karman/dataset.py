@@ -59,6 +59,7 @@ class ThermosphericDensityDataset(Dataset):
         self.exclude_fism2_flare = exclude_fism2_flare
         self.exclude_fism2_daily = exclude_fism2_daily
         self.exclude_omni = exclude_omni
+        self.features_to_include_thermo = features_to_exclude_thermo
         self.fism2_resolution = 600
         self.omni_resolution = 600
         self.fism2_daily_resolution = 86400
@@ -126,8 +127,7 @@ class ThermosphericDensityDataset(Dataset):
         #we now store the dates:
         self.dates_thermo=self.data_thermo['all__dates_datetime__']
         self.thermospheric_density=self.data_thermo['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].to_numpy().astype(np.float32)
-        self.data_thermo.drop(features_to_exclude_thermo, axis=1, inplace=True)
-        self.data_thermo_matrix=self.data_thermo.to_numpy().astype(np.float32)
+        self.data_thermo_matrix=self.data_thermo.drop(columns=features_to_exclude_thermo).to_numpy().astype(np.float32)
         self.index_list=list(self.data_thermo.index)
         #Normalization:
         if normalize:
@@ -216,7 +216,7 @@ class ThermosphericDensityDataset(Dataset):
         if not self.exclude_fism2_daily:
             idx_fism2_daily=self.date_to_index(date, self._date_start_fism2_daily, self.fism2_daily_resolution)
             sample['fism2_daily'] = torch.tensor(self.fism2_daily_irradiance_matrix[idx_fism2_daily-self._lag_fism2_daily:idx_fism2_daily+1])
-        
+
         if not self.exclude_fism2_flare:
             idx_fism2_flare=self.date_to_index(date, self._date_start_fism2_flare, self.fism2_resolution)
             sample['fism2_flare'] = torch.tensor(self.fism2_flare_irradiance_matrix[idx_fism2_flare-self._lag_fism2_flare:idx_fism2_flare+1])
@@ -227,7 +227,6 @@ class ThermosphericDensityDataset(Dataset):
 
         sample['static_features'] = torch.tensor(self.data_thermo_matrix[index,:])
         sample['target'] = torch.tensor(self.thermospheric_density[index])
-
         return sample
 
     def __len__(self):

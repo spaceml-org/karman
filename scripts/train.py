@@ -46,7 +46,6 @@ def run():
     parser.add_argument('--exclude_fism2_daily', action='store_true')
     parser.add_argument('--exclude_fism2_flare', action='store_true')
     parser.add_argument('--exclude_omni', action='store_true')
-    parser.add_argument('--test_mode', action='store_true')
     parser.add_argument('--wavelength_bands_to_skip', help='FISM2 Irradiance data wavelengths downsampling proportion: base is 0.1 nm (e.g. 10 means every 1nm)', default=10, type=int)
     parser.add_argument('--omniweb_downsampling_ratio', help='OMNIWeb downsampling proportion in time: base is 1 min (e.g. 10 means every 10 min)', default=10, type=int)
     parser.add_argument('--features_to_exclude_omni', help='Features to exclude for OMNI data', default=['all__dates_datetime__',
@@ -154,7 +153,7 @@ def run():
             val_indices = [int(line.rstrip()) for line in f]
         with open(os.path.join(opt.data_directory, "test_indices.txt"), 'r') as f:
             test_indices = [int(line.rstrip()) for line in f]
-            
+
     train_indices=np.array(train_indices)
     val_indices=np.array(val_indices)
     test_indices=np.array(test_indices)
@@ -163,7 +162,7 @@ def run():
     train_indices=train_indices[train_indices<len(dataset)]
     val_indices=val_indices[val_indices<len(dataset)]
     test_indices=test_indices[test_indices<len(dataset)]
-    
+
     print(f"Train set proportion: {round(len(train_indices)/len(dataset)*100, 2)} %, {len(train_indices)}/{len(dataset)}")
     print(f"Validation set proportion: {round(len(val_indices)/len(dataset)*100,2)} %, {len(val_indices)}/{len(dataset)}")
     print(f"Test set proportion: {round(len(test_indices)/len(dataset)*100, 2)} %, {len(test_indices)}/{len(dataset)}")
@@ -263,7 +262,6 @@ def run():
     for epoch in range(opt.epochs):
         if epoch%opt.valid_every==0:
             print("Validation\n")
-            #model.eval()
             model.train(False)
             batches_valid_loss=0
             validation_losses=[]
@@ -283,7 +281,6 @@ def run():
                 print(f"Saving best model to: {best_model_path} \n")
                 torch.save({'state_dict': model.state_dict(),
                             'opt': opt}, best_model_path)
-#torch.save(model.state_dict(), best_model_path)
 
             model.train(True)
         for batch in tqdm(train_loader):
@@ -296,14 +293,10 @@ def run():
             train_loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            print((epoch, float(train_loss)),end='\r')
             wandb.log({'train_loss': train_loss.item()})
-            #i_total+=1
         if epoch%opt.test_every==0:
             print("Testing\n")
-            #model.eval()
             model.train(False)
-            batches_test_loss=0
             test_losses=[]
             with torch.no_grad():
                 for batch_test in tqdm(test_loader):
@@ -327,10 +320,6 @@ def run():
     wandb.log({
         'Test Results': test_results
     })
-#            if opt.test_mode and i % 5 == 0:
-                # Quickly test whether script is working on a much
-                # smaller train iteration
-#                break
 
 
 if __name__ == "__main__":

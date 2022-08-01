@@ -27,7 +27,6 @@ def run():
                                                                                                          'Fism2DailyDensityPredictor',
                                                                                                          'Fism2FlareDensityPredictor',
                                                                                                          'OmniDensityPredictor'])
-{ nohup python train.py --data_directory /home/giacomoacciarini/ --batch_size 512 --model FeedForwardDensityPredictor --epochs 30 --num_workers 64 --features_to_exclude_thermo all__dates_datetime__ tudelft_thermo__satellite__ tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3] NRLMSISE00__thermospheric_density__[kg/m**3] JB08__thermospheric_density__[kg/m**3] --output_directory dropout_run --run_name dropout_run > log_dropout_run.txt 2>&1; } &
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--output_directory', help='Output directory', default='output_directory')

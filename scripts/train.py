@@ -27,6 +27,7 @@ def run():
                                                                                                          'Fism2DailyDensityPredictor',
                                                                                                          'Fism2FlareDensityPredictor',
                                                                                                          'OmniDensityPredictor'])
+{ nohup python train.py --data_directory /home/giacomoacciarini/ --batch_size 512 --model FeedForwardDensityPredictor --epochs 30 --num_workers 64 --features_to_exclude_thermo all__dates_datetime__ tudelft_thermo__satellite__ tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3] NRLMSISE00__thermospheric_density__[kg/m**3] JB08__thermospheric_density__[kg/m**3] --output_directory dropout_run --run_name dropout_run > log_dropout_run.txt 2>&1; } &
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--output_directory', help='Output directory', default='output_directory')
@@ -35,6 +36,8 @@ def run():
     parser.add_argument('--test_every', default=2, type=int)
     parser.add_argument('--data_directory', default='/home/jupyter/', type=str)
     parser.add_argument('--learning_rate', help='learning rate to use', default=1e-4, type=float)
+    parser.add_argument('--dropout_ffnn', help='FFNN dropout probability', default=0., type=float)
+    parser.add_argument('--dropout_lstm', help='LSTM dropout probability', default=0., type=float)
     parser.add_argument('--weight_decay', help='Weight decay: optimizer parameter', default=0., type=float)
     parser.add_argument('--optimizer', help='Optimizer to use', default='adam', choices=['adam', 'sgd'])
     parser.add_argument('--load_indices',help='If False, then train, validation and test set are computed on the fly; otherwise, they are loaded', default=True, type=bool)
@@ -191,14 +194,17 @@ def run():
     if opt.model == 'FeedForwardDensityPredictor':
         # Will only use an FFNN with just the thermo static features data
         model = FeedForwardDensityPredictor(
-                            num_features=dataset.data_thermo_matrix.shape[1]
+                            num_features=dataset.data_thermo_matrix.shape[1],
+                            dropout=opt.dropout_ffnn
                             )
     elif opt.model=='Fism2FlareDensityPredictor':
         if opt.exclude_fism2_daily and opt.exclude_omni:
             model=Fism2FlareDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
-                            output_size_fism2_flare=20
+                            output_size_fism2_flare=20,
+                            dropout_ffnn=opt.dropout_ffnn,
+                            dropout_lstm=opt.dropout_lstm
                             )
         else:
             raise RuntimeError(f"exclude_fism2_daily and exclude_omni are not set to True; while model chosen is {opt.model}")
@@ -207,7 +213,9 @@ def run():
             model=Fism2DailyDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
-                            output_size_fism2_daily=20
+                            output_size_fism2_daily=20,
+                            dropout_ffnn=opt.dropout_ffnn,
+                            dropout_lstm=opt.dropout_lstm
                             )
         else:
             raise RuntimeError(f"exclude_fism2_flare and exclude_omni are not set to True; while model chosen is {opt.model}")
@@ -216,7 +224,9 @@ def run():
             model=OmniDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_omni=dataset.data_omni_matrix.shape[1],
-                            output_size_omni=20
+                            output_size_omni=20,
+                            dropout_ffnn=opt.dropout_ffnn,
+                            dropout_lstm=opt.dropout_lstm
                             )
         else:
             raise RuntimeError(f"exclude_fism2_daily and exclude_fism2_flare are not set to True; while model chosen is {opt.model}")
@@ -229,7 +239,9 @@ def run():
                             input_size_omni=dataset.data_omni_matrix.shape[1],
                             output_size_fism2_flare=20,
                             output_size_fism2_daily=20,
-                            output_size_omni=20
+                            output_size_omni=20,
+                            dropout_ffnn=opt.dropout_ffnn,
+                            dropout_lstm=opt.dropout_lstm
                             )
         else:
             raise RuntimeError("exclude_omni, exclude_fism2_daily, exclude_fism2_flare are not all True, FullFeatureDensityPredictor cannot be used")

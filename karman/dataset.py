@@ -59,7 +59,6 @@ class ThermosphericDensityDataset(Dataset):
         self.exclude_fism2_flare = exclude_fism2_flare
         self.exclude_fism2_daily = exclude_fism2_daily
         self.exclude_omni = exclude_omni
-        self.features_to_include_thermo = features_to_exclude_thermo
         self.fism2_resolution = 600
         self.omni_resolution = 600
         self.fism2_daily_resolution = 86400

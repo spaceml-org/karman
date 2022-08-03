@@ -140,3 +140,8 @@ dmypy.json
 cython_debug/
 
 .vscode
+
+*csv
+*gif
+wandb
+data_directory/*

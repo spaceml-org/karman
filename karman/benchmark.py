@@ -35,16 +35,16 @@ class Benchmark():
         self.density_threshold_ignore = 1e-17
         self.metrics = [
             rmse,
-            mpe,
+            mape,
             correlation
         ]
         self.ap_column = 'celestrack__ap_h_0__'
         self.storm_thresholds = {
-            'Quiet': 15.0,
-            'Mild': 30.0,
-            'Minor': 50.0,
-            'Major' : 100.0,
-            'Severe': 400.0
+            '1. (0-15) Quiet': 15.0,
+            '2. (15-30) Mild': 30.0,
+            '3. (30-50) Minor': 50.0,
+            '4. (50-100) Major' : 100.0,
+            '5. (100+) Severe': 400.0
         }
         self.altitude_column = 'tudelft_thermo__altitude__[m]'
         self.altitude_ranges = {
@@ -58,14 +58,14 @@ class Benchmark():
         }
         self.metrics = {
             'RMSE': rmse,
-            'MPE': mpe,
+            'MAPE': mape,
             'Correlation': correlation
         }
 
         self.model_column_map = {
             'JB08': 'JB08__thermospheric_density__[kg/m**3]',
             'Nrlmsise': 'NRLMSISE00__thermospheric_density__[kg/m**3]',
-            'Model': 'model'
+            self.model_name: 'model'
         }
 
     def evaluate_model(self, dataset, model):
@@ -73,16 +73,16 @@ class Benchmark():
         Evaluates the model on the dataset with multiple metrics
         """
         test_dataset = self.get_predictions_and_targets(dataset, model)
-        self.analyize_dataframe(test_dataset)
+        self.analyze_dataframe(test_dataset)
 
-    def analyize_dataframe(self, test_dataset):
+    def analyze_dataframe(self, test_dataset):
         print('Evaluating Storm Condition Results.')
         storm_bins = np.digitize(
             test_dataset[self.ap_column].astype(float).values,
             np.array(list(self.storm_thresholds.values()))
         )
         test_dataset['storm_classification'] = storm_bins
-        storm_results = pd.DataFrame(columns=['Metric Value', 'Condition', 'Support', 'Metric Type'])
+        storm_results = pd.DataFrame(columns=['Model', 'Metric Value', 'Condition', 'Support', 'Metric Type'])
 
         for storm_index, storm_condition in enumerate(self.storm_thresholds.keys()):
             storm_dataset = test_dataset[test_dataset['storm_classification'] == storm_index]
@@ -109,7 +109,7 @@ class Benchmark():
             np.array(list(self.altitude_ranges.values()))
         )
         test_dataset['altitude_classification'] = altitude_bins
-        altitude_results = pd.DataFrame(columns=['Metric Value', 'Condition', 'Support', 'Metric Type'])
+        altitude_results = pd.DataFrame(columns=['Model','Metric Value', 'Condition', 'Support', 'Metric Type'])
 
         for altitude_index, altitude_range in enumerate(self.altitude_ranges.keys()):
             altitude_dataset = test_dataset[test_dataset['altitude_classification'] == altitude_index]
@@ -127,8 +127,25 @@ class Benchmark():
                     altitude_results = altitude_results.append(entry, ignore_index=True)
 
         altitude_file = os.path.join(self.output_directory, f'{self.model_name}_altitude_results.csv')
-        print('Saving storm results to', altitude_file)
+        print('Saving altitude results to', altitude_file)
         altitude_results.to_csv(os.path.join(self.output_directory, f'{self.model_name}_altitude_results.csv'))
+
+        total_results = pd.DataFrame(columns=['Model', 'Metric Value', 'Support', 'Metric Type'])
+        target = test_dataset[self.density_column].values.astype(float)
+        for model, column_name in self.model_column_map.items():
+            for metric, metric_function in self.metrics.items():
+                prediction = test_dataset[column_name].values.astype(float)
+                entry = {
+                    'Model': model,
+                    'Metric Type': metric,
+                    'Metric Value': metric_function(prediction, target),
+                    'Support': len(test_dataset),
+                }
+                total_results = total_results.append(entry, ignore_index=True)
+
+        total_file = os.path.join(self.output_directory, f'{self.model_name}_total_results.csv')
+        print('Saving total results to', total_file)
+        total_results.to_csv(os.path.join(self.output_directory, f'{self.model_name}_total_results.csv'))
 
     def get_predictions_and_targets(self, dataset, model):
         """
@@ -183,17 +200,17 @@ class Benchmark():
         test_dataset = test_dataset[test_dataset[self.density_column] > self.density_threshold_ignore]
         end_length = len(test_dataset)
         print(f'Removed {starting_length - end_length} entries with outlier densities below {self.density_threshold_ignore}')
-        print('Saving model outputs to', model_results_file)
-        test_dataset.to_csv(model_results_file)
+        # print('Saving model outputs to', model_results_file)
+        # test_dataset.to_csv(model_results_file)
         return test_dataset
 
 
-def mpe(prediction, target):
-    mpe_ = 100 * np.mean(np.divide(
+def mape(prediction, target):
+    mape_ = 100 * np.mean(np.divide(
         np.abs(target - prediction),
         target
     ))
-    return mpe_
+    return mape_
 
 def mse(x, y):
     z = x - y

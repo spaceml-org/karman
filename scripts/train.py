@@ -200,7 +200,7 @@ def run():
             model=Fism2FlareDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
-                            output_size_fism2_flare=20,
+                            output_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )
@@ -211,7 +211,7 @@ def run():
             model=Fism2DailyDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
-                            output_size_fism2_daily=20,
+                            output_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )
@@ -222,7 +222,7 @@ def run():
             model=OmniDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_omni=dataset.data_omni_matrix.shape[1],
-                            output_size_omni=20,
+                            output_size_omni=dataset.data_omni_matrix.shape[1],
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )
@@ -235,9 +235,9 @@ def run():
                             input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
                             input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
                             input_size_omni=dataset.data_omni_matrix.shape[1],
-                            output_size_fism2_flare=20,
-                            output_size_fism2_daily=20,
-                            output_size_omni=20,
+                            output_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
+                            output_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
+                            output_size_omni=dataset.data_omni_matrix.shape[1],
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )

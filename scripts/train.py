@@ -315,7 +315,8 @@ def run():
     test_results = karman.Benchmark(
         batch_size=opt.batch_size,
         num_workers=opt.num_workers,
-        data_directory=opt.data_directory
+        data_directory=opt.data_directory,
+        output_directory=opt.output_directory
     ).evaluate_model(dataset, model)
     wandb.log({
         'Test Results': test_results

@@ -48,9 +48,10 @@ class ThermosphericDensityDataset(Dataset):
         features_to_exclude_fism2_daily=['fism2_daily__uncertainty__',
                                          'all__dates_datetime__'],
         features_to_exclude_fism2_flare=['fism2_flare__uncertainty__',
-                                         'all__dates_datetime__']
+                                         'all__dates_datetime__'],
+        create_cyclical_features=True,
     ):
-
+        self.create_cyclical_features = create_cyclical_features
         self._directory = directory
         self._lag_fism2_daily=round(lag_days_fism2_daily)
         self._lag_fism2_flare=round(lag_minutes_fism2_flare/10)
@@ -62,10 +63,34 @@ class ThermosphericDensityDataset(Dataset):
         self.fism2_resolution = 600
         self.omni_resolution = 600
         self.fism2_daily_resolution = 86400
+        # Features to create cyclical values for
+        self.cyclical_features = [
+            'all__day_of_year__[d]',
+            'all__seconds_in_day__[s]',
+            'all__sun_right_ascension__[rad]',
+            'all__sun_declination__[rad]',
+            'all__sidereal_time__[rad]',
+            'tudelft_thermo__longitude__[deg]',
+            'tudelft_thermo__local_solar_time__[h]']
 
         print("Loading Thermospheric Density Dataset:")
         self.data_thermo=pd.read_hdf(os.path.join(directory,'jb08_nrlmsise_all_v1/jb08_nrlmsise_all.h5'))
         self.data_thermo=self.data_thermo.sort_values('all__dates_datetime__')
+
+        if self.create_cyclical_features:
+            print('Creating cyclical features')
+            for feature in self.cyclical_features:
+                unit = feature.split('__')[-1][1:-1]
+                if unit != 'rad':
+                    max_ = self.data_thermo[feature].max()
+                    min_ = self.data_thermo[feature].min()
+                    feature_as_radian = 2*np.pi*(self.data_thermo[feature].values - min_)/(max_ - min_)
+                    self.data_thermo[f'{feature}_sin'] = np.sin(feature_as_radian)
+                    self.data_thermo[f'{feature}_cos'] = np.cos(feature_as_radian)
+                else:
+                    self.data_thermo[f'{feature}_sin'] = np.sin(self.data_thermo[feature])
+                    self.data_thermo[f'{feature}_cos'] = np.cos(self.data_thermo[feature])
+
 
         if not self.exclude_omni:
             print(f"Loading OMNIWeb ({omniweb_downsampling_ratio} min) Dataset:")
@@ -126,17 +151,33 @@ class ThermosphericDensityDataset(Dataset):
         #we now store the dates:
         self.dates_thermo=self.data_thermo['all__dates_datetime__']
         self.thermospheric_density=self.data_thermo['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].to_numpy().astype(np.float32)
-        self.data_thermo_matrix=self.data_thermo.drop(columns=features_to_exclude_thermo).to_numpy().astype(np.float32)
+        if self.create_cyclical_features:
+            self.thermo_features = sorted(list(set(self.data_thermo.columns) - set(features_to_exclude_thermo) - set(self.cyclical_features)))
+        else:
+            self.thermo_features = sorted(list(set(self.data_thermo.columns) - set(features_to_exclude_thermo)))
+
+        self.data_thermo_matrix=self.data_thermo.loc[:,self.thermo_features].to_numpy().astype(np.float32)
         self.index_list=list(self.data_thermo.index)
+
         #Normalization:
         if normalize:
             print("\nNormalizing data:")
             print(f"\nNormalizing thermospheric data, features: {list(self.data_thermo.columns)}")
-            self.thermo_mins=self.data_thermo_matrix.min(axis=0)
-            self.thermo_maxs=self.data_thermo_matrix.max(axis=0)
-            for i in range(len(self.thermo_mins)):
-                self.data_thermo_matrix[:,i]=self.minmax_normalize(self.data_thermo_matrix[:,i], min_=self.thermo_mins[i], max_=self.thermo_maxs[i])
+            # self.thermo_mins=self.data_thermo_matrix.min(axis=0)
+            # self.thermo_maxs=self.data_thermo_matrix.max(axis=0)
+            # for i in range(len(self.thermo_mins)):
+            #     self.data_thermo_matrix[:,i]=self.minmax_normalize(self.data_thermo_matrix[:,i], min_=self.thermo_mins[i], max_=self.thermo_maxs[i])
 
+            self.thermo_mins = {}
+            self.thermo_maxs = {}
+            for i, feature in enumerate(self.thermo_features):
+                self.thermo_mins[feature] = self.data_thermo_matrix[:,i].min()
+                self.thermo_maxs[feature] = self.data_thermo_matrix[:,i].max()
+                self.data_thermo_matrix[:,i] = self.minmax_normalize(
+                    self.data_thermo_matrix[:,i],
+                    min_=self.thermo_mins[feature],
+                    max_=self.thermo_maxs[feature]
+                )
 
             if not self.exclude_omni:
                 print(f"\nNormalizing omniweb data, features: {list(self.data_omni.columns)}")

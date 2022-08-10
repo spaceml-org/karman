@@ -170,10 +170,9 @@ def run():
     val_indices=np.array(val_indices)
     test_indices=np.array(test_indices)
 
-    #TODO fix issue with indices in datasets being too high...
-    train_indices=train_indices[train_indices<len(dataset)]
-    val_indices=val_indices[val_indices<len(dataset)]
-    test_indices=test_indices[test_indices<len(dataset)]
+    train_indices=train_indices-(dataset.dates_thermo.index[-1]-len(dataset)+1)
+    val_indices=val_indices-(dataset.dates_thermo.index[-1]-len(dataset)+1)
+    test_indices=test_indices-(dataset.dates_thermo.index[-1]-len(dataset)+1)
 
     print(f"Train set proportion: {round(len(train_indices)/len(dataset)*100, 2)} %, {len(train_indices)}/{len(dataset)}")
     print(f"Validation set proportion: {round(len(val_indices)/len(dataset)*100,2)} %, {len(val_indices)}/{len(dataset)}")

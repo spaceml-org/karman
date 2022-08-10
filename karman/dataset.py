@@ -106,7 +106,8 @@ class ThermosphericDensityDataset(Dataset):
             self.data_omni.drop(features_to_exclude_omni, axis=1, inplace=True)
             self.data_omni_matrix=self.data_omni.to_numpy().astype(np.float32)
             self.data_omni_matrix[np.isinf(self.data_omni_matrix)]=0.
-            #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available):
+            #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available) as well as its end date:
+            self.data_thermo=self.data_thermo[(self.data_thermo['all_dates_datetime__'] <= self.dates_omni[-1] )]
             self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_omni[self._lag_omni])]
             #self.data_thermo.reset_index(drop=True, inplace=True)
 
@@ -148,6 +149,7 @@ class ThermosphericDensityDataset(Dataset):
             #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available):
             self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_fism2_flare[self._lag_fism2_flare])]
             #self.data_thermo.reset_index(drop=True, inplace=True)
+
         #we now store the dates:
         self.dates_thermo=self.data_thermo['all__dates_datetime__']
         self.thermospheric_density=self.data_thermo['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].to_numpy().astype(np.float32)

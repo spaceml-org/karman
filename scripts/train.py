@@ -136,6 +136,18 @@ def run():
             train_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['train'])))].values)
             val_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['validation'])))].values)
             test_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['test'])))].values)
+
+        year_months[2022] = {}
+        year_months[2022]['train'] = np.roll(months,[2022])[train_idx]
+        year_months[2022]['validation'] = np.roll(months, [2022])[validation_idx]
+        year_months[2022]['test'] = np.roll(months, [2022])[test_idx]
+        #we make sure Feb 2022 is in the test set (SpaceX event):
+        year_months[2022]['test']=np.array([2])
+        year_months[2022]['validation'][-1]=11
+        train_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['train'])))].values)
+        val_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['validation'])))].values)
+        test_indices+=list(dataset.dates_thermo.index[(dataset.dates_thermo.dt.year.isin([year]) & dataset.dates_thermo.dt.month.isin(list(year_months[year]['test'])))].values)
+
         print("Saving created indices to files:")
         with open(os.path.join(opt.data_directory, "train_indices.txt"), 'w') as output:
             for row in train_indices:
@@ -200,7 +212,7 @@ def run():
             model=Fism2FlareDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
-                            output_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
+                            output_size_fism2_flare=20,
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )
@@ -211,7 +223,7 @@ def run():
             model=Fism2DailyDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
-                            output_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
+                            output_size_fism2_daily=20,
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )
@@ -222,7 +234,7 @@ def run():
             model=OmniDensityPredictor(
                             input_size_thermo=dataset.data_thermo_matrix.shape[1],
                             input_size_omni=dataset.data_omni_matrix.shape[1],
-                            output_size_omni=dataset.data_omni_matrix.shape[1],
+                            output_size_omni=20,
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )
@@ -235,9 +247,9 @@ def run():
                             input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
                             input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
                             input_size_omni=dataset.data_omni_matrix.shape[1],
-                            output_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
-                            output_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
-                            output_size_omni=dataset.data_omni_matrix.shape[1],
+                            output_size_fism2_flare=20,
+                            output_size_fism2_daily=20,
+                            output_size_omni=20,
                             dropout_ffnn=opt.dropout_ffnn,
                             dropout_lstm=opt.dropout_lstm
                             )
@@ -315,8 +327,7 @@ def run():
     test_results = karman.Benchmark(
         batch_size=opt.batch_size,
         num_workers=opt.num_workers,
-        data_directory=opt.data_directory,
-        output_directory=opt.output_directory
+        data_directory=opt.data_directory
     ).evaluate_model(dataset, model)
     wandb.log({
         'Test Results': test_results

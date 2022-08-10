@@ -30,7 +30,7 @@ setup(
     author='Karman Team',
     #author_email='giacomo.acciarini@gmail.com',
     packages=find_packages(),
-    install_requires=['numpy','pandas','torch','pyfiglet>=0.8.0','tqdm','wandb'],
+    install_requires=['numpy','pandas','torch','pyfiglet>=0.8.0','tqdm','wandb','pyfiglet', 'termcolor'],
     extras_require={'dev': ['pytest', 'coverage', 'pytest-xdist', 'flake8']},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)', 'Programming Language :: Python :: 3']
 )

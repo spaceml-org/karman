@@ -10,30 +10,17 @@ class FFNN(nn.Module):
         # Some previous models dont expect a dropout layer
         # and so the code breaks if a model isnt expecting
         # then when loaded up at a later date.
-        if dropout > 0.0:
-            self.fc1 = nn.Sequential(
-                nn.Linear(num_features, 100),
-                nn.Dropout(p=dropout),
-                nn.LeakyReLU(),
-                nn.Linear(100, 100),
-                nn.Dropout(p=dropout),
-                nn.LeakyReLU(),
-                nn.Linear(100, 100),
-                nn.LeakyReLU(),
-                nn.Linear(100, 1),
-            )
-        else:
-            self.fc1 = nn.Sequential(
-                nn.Linear(num_features, 100),
-                # nn.Dropout(p=dropout),
-                nn.LeakyReLU(),
-                nn.Linear(100, 100),
-                # nn.Dropout(p=dropout),
-                nn.LeakyReLU(),
-                nn.Linear(100, 100),
-                nn.LeakyReLU(),
-                nn.Linear(100, 1),
-            )
+        self.fc1 = nn.Sequential(
+            nn.Linear(num_features, 100),
+            nn.Dropout(p=dropout),
+            nn.LeakyReLU(),
+            nn.Linear(100, 100),
+            nn.Dropout(p=dropout),
+            nn.LeakyReLU(),
+            nn.Linear(100, 100),
+            nn.LeakyReLU(),
+            nn.Linear(100, 1),
+        )
 
     def forward(self, x):
         x = self.fc1(x)
@@ -75,6 +62,28 @@ class LSTMPredictor(nn.Module):
         # Just use the final item in the sequence.
         x = self.fc1(x[:, -1,:])
         return x
+
+class WindowCNN(nn.Module):
+    def __init__(self, outsize=100):
+        super().__init__()
+        self.outsize = outsize
+
+        self.cnn = nn.Sequential(
+            nn.Conv2d(1, 5, 3, stride=1),
+            nn.Conv2d(5, 5, 3, stride=1),
+            nn.LeakyReLU(),
+            nn.Conv2d(5, 5, 3, stride=1),
+            nn.Conv2d(5, 5, 3, stride=1),
+            nn.LeakyReLU(),
+            nn.Flatten()
+        )
+
+        self.fc = nn.LazyLinear(self.outsize)
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        cnn_features = self.cnn(x)
+        return self.fc(cnn_features)
 
 class OmniDensityPredictor(nn.Module):
     def __init__(self,
@@ -160,6 +169,31 @@ class FullFeatureDensityPredictor(nn.Module):
         flare_features = self.model_lstm_fism2_flare(batch['fism2_flare'])
         omni_features = self.model_lstm_omni(batch['omni'])
         flare_daily_features = self.model_lstm_fism2_daily(batch['fism2_daily'])
+
+        concatenated_features = torch.cat([
+            batch['static_features'],
+            flare_features,
+            flare_daily_features,
+            omni_features
+        ], dim=1)
+        density = self.ffnn(concatenated_features)
+        return density
+
+
+class CNNDensityPredictor(nn.Module):
+    def __init__(self,
+                 input_size_thermo,
+                 cnn_output_size):
+        super().__init__()
+        self.fism2_flare_cnn=WindowCNN(cnn_output_size)
+        self.fism2_daily_cnn=WindowCNN(cnn_output_size)
+        self.omni_cnn=WindowCNN(cnn_output_size)
+        self.ffnn=FFNN(num_features=input_size_thermo+3*cnn_output_size)
+
+    def forward(self, batch):
+        flare_features = self.fism2_flare_cnn(batch['fism2_flare'])
+        omni_features = self.omni_cnn(batch['omni'])
+        flare_daily_features = self.fism2_daily_cnn(batch['fism2_daily'])
 
         concatenated_features = torch.cat([
             batch['static_features'],

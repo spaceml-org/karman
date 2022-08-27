@@ -2,25 +2,23 @@ import datetime
 import numpy as np
 import math
 import torch
-from functools import lru_cache
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, Subset
 import pandas as pd
+from functools import lru_cache
 import os
+from sklearn.preprocessing import QuantileTransformer, MinMaxScaler
 from tqdm import tqdm
 
 class ThermosphericDensityDataset(Dataset):
     def __init__(
         self,
-        directory='/home/jupyter/',
-        normalize=True,
-        lag_minutes_omni=0,
-        lag_days_fism2_daily=0,
-        lag_minutes_fism2_flare=0,
-        wavelength_bands_to_skip=10,
-        omniweb_downsampling_ratio=1,
-        exclude_fism2_flare=False,
-        exclude_fism2_daily=False,
-        exclude_omni=False,
+        directory='/home/jupyter/karman-project/data_directory',
+        lag_minutes_omni=2*24*60,
+        lag_minutes_fism2_flare_stan_bands = 12*60,
+        lag_minutes_fism2_daily_stan_bands = 24*60,
+        omni_resolution=60,
+        fism2_flare_stan_bands_resolution=60,
+        fism2_daily_stan_bands_resolution=24*60, #1 day
         features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
                                     'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
                                     'NRLMSISE00__thermospheric_density__[kg/m**3]',
@@ -45,185 +43,151 @@ class ThermosphericDensityDataset(Dataset):
                                   'omniweb__s/cx_gse__[Re]',
                                   'omniweb__s/cy_gse__[Re]',
                                   'omniweb__s/cz_gse__[Re]'],
-        features_to_exclude_fism2_daily=['fism2_daily__uncertainty__',
-                                         'all__dates_datetime__'],
-        features_to_exclude_fism2_flare=['fism2_flare__uncertainty__',
-                                         'all__dates_datetime__'],
+        features_to_exclude_fism2_flare_stan_bands=['all__dates_datetime__'],
+        features_to_exclude_fism2_daily_stan_bands=['all__dates_datetime__'],
         create_cyclical_features=True,
     ):
         self.create_cyclical_features = create_cyclical_features
         self._directory = directory
-        self._lag_fism2_daily=round(lag_days_fism2_daily)
-        self._lag_fism2_flare=round(lag_minutes_fism2_flare/10)
-        self._lag_omni=round(lag_minutes_omni/omniweb_downsampling_ratio)
-        self.wavelength_bands_to_skip = wavelength_bands_to_skip
-        self.exclude_fism2_flare = exclude_fism2_flare
-        self.exclude_fism2_daily = exclude_fism2_daily
-        self.exclude_omni = exclude_omni
-        self.fism2_resolution = 600
-        self.omni_resolution = 600
-        self.fism2_daily_resolution = 86400
-        # Features to create cyclical values for
-        self.cyclical_features = [
-            'all__day_of_year__[d]',
-            'all__seconds_in_day__[s]',
-            'all__sun_right_ascension__[rad]',
-            'all__sun_declination__[rad]',
-            'all__sidereal_time__[rad]',
-            'tudelft_thermo__longitude__[deg]',
-            'tudelft_thermo__local_solar_time__[h]']
+        self.time_series_data = {}
 
-        print("Loading Thermospheric Density Dataset:")
-        self.data_thermo=pd.read_hdf(os.path.join(directory,'jb08_nrlmsise_all_v1/jb08_nrlmsise_all.h5'))
-        self.data_thermo=self.data_thermo.sort_values('all__dates_datetime__')
+        # Add time series data here.
+        print("Loading Omni.")
+        self._add_time_series_data('omni',
+                                   'data_omniweb_v1/omniweb_1min_data_2001_2022.h5',
+                                   lag_minutes_omni,
+                                   omni_resolution,
+                                   features_to_exclude_omni)
 
+        print("Loading FISM2 Flare Stan bands.")
+        self._add_time_series_data('fism2_flare_stan_bands',
+                                   'fism2_flare_stan_bands.h5',
+                                   lag_minutes_fism2_flare_stan_bands,
+                                   fism2_flare_stan_bands_resolution,
+                                   features_to_exclude_fism2_flare_stan_bands)
+
+        print("Loading FISM2 Daily Stan bands.")
+        self._add_time_series_data('fism2_daily_stan_bands',
+                                   'fism2_daily_stan_bands.h5',
+                                   lag_minutes_fism2_daily_stan_bands,
+                                   fism2_daily_stan_bands_resolution,
+                                   features_to_exclude_fism2_daily_stan_bands)
+
+        print('Creating thermospheric density dataset')
+        self.data_thermo = {}
+        self.data_thermo['data'] = pd.read_hdf(os.path.join(directory,'jb08_nrlmsise_all_v1/jb08_nrlmsise_all.h5'))
+        self.data_thermo['data'] = self.data_thermo['data'].sort_values('all__dates_datetime__')
+
+        # Only include data that is between the minimum and maximum that applies to all datasets
+        # These dates were calculated by looking at the available data and seeing which
+        # was the minimum located in every dataset incorporating up to 100 days lag and the
+        # maximum date that occurs in every dataset. Hardcoding these dates means that all
+        # experiments will be run on exactly the same data, regardless of the inputted lag.
+        # This means the results from all experiments will be totally comparable as they
+        # are on the same observation data.
+        self.min_date = pd.to_datetime('2004-02-01 00:00:00')
+        self.max_date = pd.to_datetime('2020-01-01 23:59:00')
+        self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['all__dates_datetime__'] >= self.min_date]
+        self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['all__dates_datetime__'] <= self.max_date]
+        self.data_thermo['data'].reset_index(inplace=True)
+
+        self.data_thermo['dates'] = list(self.data_thermo['data']['all__dates_datetime__'])
+        self.data_thermo['date_start'] = self.data_thermo['dates'][0]
+
+        # This logic creates sin and cos versions of cyclical features to avoid hard boundaries in
+        # the outputted densities.
         if self.create_cyclical_features:
             print('Creating cyclical features')
+            # Features to create cyclical values for
+            self.cyclical_features = [
+                'all__day_of_year__[d]',
+                'all__seconds_in_day__[s]',
+                'all__sun_right_ascension__[rad]',
+                'all__sun_declination__[rad]',
+                'all__sidereal_time__[rad]',
+                'tudelft_thermo__longitude__[deg]',
+                'tudelft_thermo__local_solar_time__[h]']
+
+            features_to_exclude_thermo = features_to_exclude_thermo + self.cyclical_features
             for feature in self.cyclical_features:
+                # Sticking to the naming conventions here is very important.
                 unit = feature.split('__')[-1][1:-1]
                 if unit != 'rad':
-                    max_ = self.data_thermo[feature].max()
-                    min_ = self.data_thermo[feature].min()
-                    feature_as_radian = 2*np.pi*(self.data_thermo[feature].values - min_)/(max_ - min_)
-                    self.data_thermo[f'{feature}_sin'] = np.sin(feature_as_radian)
-                    self.data_thermo[f'{feature}_cos'] = np.cos(feature_as_radian)
+                    max_ = self.data_thermo['data'][feature].max()
+                    min_ = self.data_thermo['data'][feature].min()
+                    feature_as_radian = 2*np.pi*(self.data_thermo['data'][feature].values - min_)/(max_ - min_)
+                    self.data_thermo['data'][f'{feature}_sin'] = np.sin(feature_as_radian)
+                    self.data_thermo['data'][f'{feature}_cos'] = np.cos(feature_as_radian)
                 else:
-                    self.data_thermo[f'{feature}_sin'] = np.sin(self.data_thermo[feature])
-                    self.data_thermo[f'{feature}_cos'] = np.cos(self.data_thermo[feature])
+                    self.data_thermo['data'][f'{feature}_sin'] = np.sin(self.data_thermo['data'][feature])
+                    self.data_thermo['data'][f'{feature}_cos'] = np.cos(self.data_thermo['data'][feature])
 
+        self.data_thermo['data_matrix'] = self.data_thermo['data'].drop(columns=features_to_exclude_thermo).values
+        self.data_thermo['data_matrix'][np.isinf(self.data_thermo['data_matrix'])]=0.
+        # Why min max here and Quantile later? Because I dont want
+        # to normalize cyclical features- they can stay as nice sinusoids
+        scaler = MinMaxScaler()
+        self.data_thermo['data_matrix'] = scaler.fit_transform(self.data_thermo['data_matrix']).astype(np.float32)
+        self.data_thermo['data_matrix']  = torch.tensor(self.data_thermo['data_matrix'] ).detach()
+        self.data_thermo['scaler'] = scaler
 
-        if not self.exclude_omni:
-            print(f"Loading OMNIWeb ({omniweb_downsampling_ratio} min) Dataset:")
-            if omniweb_downsampling_ratio!=1:
-                _data_omni=pd.read_hdf(os.path.join(directory, 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'))
-                self.data_omni=_data_omni.iloc[::omniweb_downsampling_ratio,:]
-                del _data_omni
-                self.data_omni.reset_index(drop=True, inplace=True)
-            else:
-                self.data_omni=pd.read_hdf(os.path.join(directory, 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'))
-            self.dates_omni=self.data_omni['all__dates_datetime__']
-            self._date_start_omni=self.dates_omni.iloc[0]
-            self.data_omni.drop(features_to_exclude_omni, axis=1, inplace=True)
-            self.data_omni_matrix=self.data_omni.to_numpy().astype(np.float32)
-            self.data_omni_matrix[np.isinf(self.data_omni_matrix)]=0.
-            #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available) as well as its end date:
-            self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] <= self.dates_omni.iloc[-1] )]
-            self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_omni[self._lag_omni])]
-            #self.data_thermo.reset_index(drop=True, inplace=True)
+        # Normalize the thermospheric density.
+        self.thermospheric_density = self.data_thermo['data']['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].values
+        thermospheric_density_log=np.log(self.thermospheric_density*1e12)
+        self.thermospheric_density_log_min=thermospheric_density_log.min()
+        self.thermospheric_density_log_max=thermospheric_density_log.max()
+        self.thermospheric_density=self.minmax_normalize(thermospheric_density_log, self.thermospheric_density_log_min, self.thermospheric_density_log_max)
+        self.thermospheric_density = torch.tensor(self.thermospheric_density).to(dtype=torch.float32).detach()
 
-        if not self.exclude_fism2_daily:
-            print("Loading FISM2 Daily Irradiance Dataset:")
-            self.data_fism2_daily=pd.read_hdf(os.path.join(directory, 'fism2_daily_v1/fism2_daily.h5'))
-            self.dates_fism2_daily=self.data_fism2_daily['all__dates_datetime__']
-            self.data_fism2_daily.drop(features_to_exclude_fism2_daily, axis=1, inplace=True)
-            self._date_start_fism2_daily=self.dates_fism2_daily.iloc[0]
-            self.fism2_daily_irradiance_matrix=np.stack(self.data_fism2_daily['fism2_daily__irradiance__[W/m**2/nm]'].to_numpy()).astype(np.float32)
-            self.fism2_daily_irradiance_matrix=self.fism2_daily_irradiance_matrix[
-                :,
-                range(0,self.fism2_daily_irradiance_matrix.shape[1],self.wavelength_bands_to_skip)
-            ]
-            self.fism2_daily_irradiance_matrix[np.isinf(self.fism2_daily_irradiance_matrix)]=0.
+        print("\nFinished Creating dataset.")
 
-        if not self.exclude_fism2_flare:
-            print("Loading FISM2 Flare (10min) Irradiance Dataset:")
-            base_path_fism2_flare=os.path.join(directory, 'fism2_flare_v1/downsampled/10min')
-            files_fism2_flare=os.listdir(base_path_fism2_flare)
-            files_fism2_flare=[os.path.join(base_path_fism2_flare, file) for file in files_fism2_flare]
-            files_fism2_flare=sorted(files_fism2_flare)
-            df_fism2_flare=pd.read_hdf(files_fism2_flare[0])
-            for file in tqdm(files_fism2_flare[1:]):
-                df_fism2_flare=pd.concat([df_fism2_flare,pd.read_hdf(file)])
-            #there are 8 dates that slightly deviate from 10 minutes (not much, like less than 1 min), we make sure to round them:
-            df_fism2_flare['all__dates_datetime__']=df_fism2_flare['all__dates_datetime__'].round("10T")
-            self.data_fism2_flare=df_fism2_flare
-            self.dates_fism2_flare=self.data_fism2_flare['all__dates_datetime__']
-            self.data_fism2_flare.drop(features_to_exclude_fism2_flare, axis=1, inplace=True)
-            self._date_start_fism2_flare=self.dates_fism2_flare.iloc[0]
-            #I now move the fism2 flare data into a numpy matrix:
-            self.fism2_flare_irradiance_matrix=np.stack(self.data_fism2_flare['fism2_flare__irradiance__[W/m**2/nm]'].to_numpy()).astype(np.float32)
-            self.fism2_flare_irradiance_matrix=self.fism2_flare_irradiance_matrix[
-                :,
-                range(0,self.fism2_flare_irradiance_matrix.shape[1],self.wavelength_bands_to_skip)
-            ]
-            self.fism2_flare_irradiance_matrix[np.isinf(self.fism2_flare_irradiance_matrix)]=0.
-            #I now make sure that the starting date of the thermospheric datasets matches the one of the FISM2 flare (which is the latest available):
-            self.data_thermo=self.data_thermo[(self.data_thermo['all__dates_datetime__'] >= self.dates_fism2_flare[self._lag_fism2_flare])]
-            #self.data_thermo.reset_index(drop=True, inplace=True)
+    def _add_time_series_data(self, data_name, data_file, lag, resolution, excluded_features):
+        """
+        Takes an underlying data files, stored in an hdf format, and loads and normalizes the data.
+        It assumes that the data has an unbroken dates column 'all__dates_datetime__' at the same interval
+        from start to finish of the data. It replaces NaNs and Infinities by interpolating them away.
 
-        #we now store the dates:
-        self.dates_thermo=self.data_thermo['all__dates_datetime__']
-        self.thermospheric_density=self.data_thermo['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].to_numpy().astype(np.float32)
-        if self.create_cyclical_features:
-            self.thermo_features = sorted(list(set(self.data_thermo.columns) - set(features_to_exclude_thermo) - set(self.cyclical_features)))
-        else:
-            self.thermo_features = sorted(list(set(self.data_thermo.columns) - set(features_to_exclude_thermo)))
+        It resamples the dataset to a chosen resolution, specified in minutes.
 
-        self.data_thermo_matrix=self.data_thermo.loc[:,self.thermo_features].to_numpy().astype(np.float32)
-        self.index_list=list(self.data_thermo.index)
+        It stores information about the dataset in a dictionary in the 'time_series_data' instance object
+        under the key 'data_name'
+            'date_start': Minimum date of the dataset as a pandas datetime object
+            'scaler': A scikit learn scaler used to normalize the data
+            'data': The underlying pandas dataframe
+            'data_matrix': The normalized torch tensor version of the dataframe.
+            'resolution': The resolution of the dataset in minutes.
 
-        #Normalization:
-        if normalize:
-            print("\nNormalizing data:")
-            print(f"\nNormalizing thermospheric data, features: {list(self.data_thermo.columns)}")
-            # self.thermo_mins=self.data_thermo_matrix.min(axis=0)
-            # self.thermo_maxs=self.data_thermo_matrix.max(axis=0)
-            # for i in range(len(self.thermo_mins)):
-            #     self.data_thermo_matrix[:,i]=self.minmax_normalize(self.data_thermo_matrix[:,i], min_=self.thermo_mins[i], max_=self.thermo_maxs[i])
+        The method uses a QuantileTransformer class to scale the data. The reason is it is a very convenient way
+        to scale data into a forced normal distribution
 
-            self.thermo_mins = {}
-            self.thermo_maxs = {}
-            for i, feature in enumerate(self.thermo_features):
-                self.thermo_mins[feature] = self.data_thermo_matrix[:,i].min()
-                self.thermo_maxs[feature] = self.data_thermo_matrix[:,i].max()
-                self.data_thermo_matrix[:,i] = self.minmax_normalize(
-                    self.data_thermo_matrix[:,i],
-                    min_=self.thermo_mins[feature],
-                    max_=self.thermo_maxs[feature]
-                )
-
-            if not self.exclude_omni:
-                print(f"\nNormalizing omniweb data, features: {list(self.data_omni.columns)}")
-                self.omni_mins=[]
-                self.omni_maxs=[]
-                for i in range(self.data_omni_matrix.shape[1]):
-                    self.data_omni_matrix[:,i]=self.minmax_normalize(self.data_omni_matrix[:,i], min_=self.data_omni_matrix[:,i].min(), max_=self.data_omni_matrix[:,i].max())
-                    self.omni_mins.append(self.data_omni_matrix[:,i].min())
-                    self.omni_maxs.append(self.data_omni_matrix[:,i].max())
-
-            if not self.exclude_fism2_daily:
-                print(f"\nNormalizing FISM2 daily irradiance, features {list(self.data_fism2_daily.columns)}")
-                self.fism2_daily_irradiance_mins=np.abs(self.fism2_daily_irradiance_matrix.min(axis=0))
-                self.fism2_daily_log_min=[]
-                self.fism2_daily_log_max=[]
-                for i in tqdm(range(self.fism2_daily_irradiance_matrix.shape[1])):
-                    fism2_daily_normalized=np.log(self.fism2_daily_irradiance_matrix[:,i]+self.fism2_daily_irradiance_mins[i]+1e-16)
-                    self.fism2_daily_log_min.append(fism2_daily_normalized.min())
-                    self.fism2_daily_log_max.append(fism2_daily_normalized.max())
-                    self.fism2_daily_irradiance_matrix[:,i]=self.minmax_normalize(fism2_daily_normalized, self.fism2_daily_log_min[-1], self.fism2_daily_log_max[-1])
-
-            if not self.exclude_fism2_flare:
-                print(f"\nNormalizing FISM2 flare irradiance, features: {list(self.data_fism2_flare.columns)}")
-                self.fism2_flare_irradiance_mins=np.abs(self.fism2_flare_irradiance_matrix.min(axis=0))
-                self.fism2_flare_log_min=[]
-                self.fism2_flare_log_max=[]
-                for i in tqdm(range(self.fism2_flare_irradiance_matrix.shape[1])):
-                    fism2_flare_normalized=np.log(self.fism2_flare_irradiance_matrix[:,i]+self.fism2_flare_irradiance_mins[i]+1e-16)
-                    self.fism2_flare_log_min.append(fism2_flare_normalized.min())
-                    self.fism2_flare_log_max.append(fism2_flare_normalized.max())
-                    self.fism2_flare_irradiance_matrix[:,i]=self.minmax_normalize(fism2_flare_normalized, self.fism2_flare_log_min[-1], self.fism2_flare_log_max[-1])
-
-            print("\nNormalizing ground truth thermospheric density, feature name: "+'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]')
-            thermospheric_density_log=np.log(self.thermospheric_density*1e12)
-            self.thermospheric_density_log_min=thermospheric_density_log.min()
-            self.thermospheric_density_log_max=thermospheric_density_log.max()
-            self.thermospheric_density=self.minmax_normalize(thermospheric_density_log, self.thermospheric_density_log_min, self.thermospheric_density_log_max)
-            print("\nFinished normalizing data.")
+        The motivation behind this method is to provide a common api to add any time series dataset to be attached to
+        each thermospheric observation, making it easy to add new time series data into the logic.
+        """
+        self.time_series_data[data_name] = {}
+        self.time_series_data[data_name]['data'] = pd.read_hdf(os.path.join(self._directory, data_file))
+        self.time_series_data[data_name]['data'].index = pd.to_datetime(self.time_series_data[data_name]['data']['all__dates_datetime__'])
+        self.time_series_data[data_name]['data'].sort_index(inplace=True)
+        self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].drop(columns=excluded_features, axis=1)
+        self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].replace([np.inf, -np.inf], None)
+        self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].interpolate(method='pad')
+        self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
+        self.time_series_data[data_name]['date_start'] = min(self.time_series_data[data_name]['data'].index)
+        self.time_series_data[data_name]['data_matrix'] = self.time_series_data[data_name]['data'].values
+        # Some of the time series data is highly skewed, so much so even logging doesnt help
+        # This method forces a normal distribution by mapping the quantiles to
+        # a normal curve.
+        scaler = QuantileTransformer(output_distribution='normal', n_quantiles=10_000)
+        self.time_series_data[data_name]['data_matrix'] = scaler.fit_transform(self.time_series_data[data_name]['data_matrix']).astype(np.float32)
+        self.time_series_data[data_name]['data_matrix'] = torch.tensor(self.time_series_data[data_name]['data_matrix']).detach()
+        self.time_series_data[data_name]['lag'] = lag
+        self.time_series_data[data_name]['scaler'] = scaler
+        self.time_series_data[data_name]['resolution'] = resolution
 
     def unscale_density(self, scaled_density):
         logged_density = (scaled_density * (self.thermospheric_density_log_max - self.thermospheric_density_log_min)) + self.thermospheric_density_log_min
         return np.exp(logged_density)/1e12
 
-    @lru_cache()
+    @lru_cache(maxsize=None)
     def index_to_date(self, index, date_start, delta_seconds):
         """
         This function takes an index, a date_start of the dataset, and its equally spaced time interval in seconds, and returns the date corresponding
@@ -233,7 +197,7 @@ class ThermosphericDensityDataset(Dataset):
         date=date_start+datetime.timedelta(seconds=index*delta_seconds)
         return date
 
-    @lru_cache()
+    @lru_cache(maxsize=None)
     def date_to_index(self, date, date_start, delta_seconds):
         """
         This function takes a date, the date_start of the dataset, and its equally spaced intervals: delta_seconds (in seconds), and returns the
@@ -243,33 +207,67 @@ class ThermosphericDensityDataset(Dataset):
         delta_date=date-date_start
         return math.floor(delta_date.total_seconds()/delta_seconds)
 
-    def meanstd_normalize(self, values, mean, std):
-        values = (values-mean)/(std)
-        return values
-
     def minmax_normalize(self, values, min_, max_):
         values = (values - min_)/(max_ - min_)
         return values
 
     def __getitem__(self, index):
-        date = self.dates_thermo[self.index_list[index]]
+        date = self.data_thermo['dates'][index]
         sample = {}
+        sample['instantaneous_features'] = self.data_thermo['data_matrix'][index,:].detach()
+        sample['target'] = self.thermospheric_density[index].detach()
 
-        if not self.exclude_fism2_daily:
-            idx_fism2_daily=self.date_to_index(date, self._date_start_fism2_daily, self.fism2_daily_resolution)
-            sample['fism2_daily'] = torch.tensor(self.fism2_daily_irradiance_matrix[idx_fism2_daily-self._lag_fism2_daily:idx_fism2_daily+1])
-
-        if not self.exclude_fism2_flare:
-            idx_fism2_flare=self.date_to_index(date, self._date_start_fism2_flare, self.fism2_resolution)
-            sample['fism2_flare'] = torch.tensor(self.fism2_flare_irradiance_matrix[idx_fism2_flare-self._lag_fism2_flare:idx_fism2_flare+1])
-
-        if not self.exclude_omni:
-            idx_omniweb=self.date_to_index(date, self._date_start_omni, self.omni_resolution)
-            sample['omni'] = torch.tensor(self.data_omni_matrix[idx_omniweb-self._lag_omni:idx_omniweb+1,:])
-
-        sample['static_features'] = torch.tensor(self.data_thermo_matrix[index,:])
-        sample['target'] = torch.tensor(self.thermospheric_density[index])
+        for data_name, data in self.time_series_data.items():
+            now_index = self.date_to_index(date, data['date_start'], 60*data['resolution'])
+            lagged_index = self.date_to_index(date - pd.Timedelta(minutes=data['lag']), data['date_start'], 60*data['resolution'])
+            sample[data_name] = data['data_matrix'][lagged_index:(now_index+1), :].detach()
         return sample
 
+    def _set_indices(self, test_month_idx, validation_month_idx):
+        """
+        Works out which indices are in the training, validation and test sets.
+
+        Previously, a file with indices was stored in the cloud. However, this way
+        simply works it out based on dates, which I feel is much safer. It takes
+        only a couple of minutes.
+        """
+        years = list(range(self.min_date.year, self.max_date.year + 1))
+        months = np.array(range(1,13))
+
+        #Take the remaining indices (0-11 inclusive) as train months.
+        train_month_idx = sorted(list(set(list(range(0,12))) - set(validation_month_idx) - set(test_month_idx)))
+
+        self.train_indices=[]
+        self.val_indices=[]
+        self.test_indices=[]
+        date_column = self.data_thermo['data']['all__dates_datetime__']
+        print('Creating training, validation and test sets.')
+        for year in tqdm(years, desc=f'{len(years)} years to iterate through.'):
+            year_months_train = list(np.roll(months, year)[train_month_idx])
+            year_months_val = list(np.roll(months, year)[validation_month_idx])
+            year_months_test = list(np.roll(months, year)[test_month_idx])
+            correct_year = (date_column.dt.year.astype(int) == int(year))
+            date_as_month = date_column.dt.month
+            self.train_indices+=list(self.data_thermo['data'][(correct_year & date_as_month.isin(year_months_train))].index)
+            self.val_indices+=list(self.data_thermo['data'][(correct_year & date_as_month.isin(year_months_val))].index)
+            self.test_indices+=list(self.data_thermo['data'][(correct_year & date_as_month.isin(year_months_test))].index)
+        self.train_indices = sorted(self.train_indices)
+        self.val_indices = sorted(self.val_indices)
+        self.test_indices = sorted(self.test_indices)
+
+        print('Train size:', len(self.train_indices))
+        print('Validation size:', len(self.val_indices))
+        print('Test size:', len(self.test_indices))
+
     def __len__(self):
-        return len(self.data_thermo)
+        return len(self.data_thermo['dates'])
+
+    # These three methods return a subset of the dataset based on the calculated indices.
+    def train_dataset(self):
+        return Subset(self, self.train_indices)
+
+    def validation_dataset(self):
+        return Subset(self, self.val_indices)
+
+    def test_dataset(self):
+        return Subset(self, self.test_indices)

@@ -6,7 +6,8 @@ import torch
 from torch.utils.data import DataLoader
 import numpy as np
 import karman
-from karman.nn import *
+# from karman.nn import *
+from karman.models import *
 import os
 from torch.utils.data import Subset
 from torch import nn
@@ -26,8 +27,6 @@ class Benchmark():
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.data_directory = data_directory
-        with open(os.path.join(self.data_directory, "test_indices.txt"), 'r') as f:
-            self.test_indices = [int(line.rstrip()) for line in f]
         self.jb08_column = 'JB08__thermospheric_density__[kg/m**3]'
         self.nrlmsise_column = 'NRLMSISE00__thermospheric_density__[kg/m**3]'
         self.density_column = 'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'
@@ -39,12 +38,12 @@ class Benchmark():
             correlation
         ]
         self.ap_column = 'celestrack__ap_h_0__'
+        # Numbers are put in to preserve alphabetical order.
         self.storm_thresholds = {
             '1. (0-15) Quiet': 15.0,
             '2. (15-30) Mild': 30.0,
             '3. (30-50) Minor': 50.0,
-            '4. (50-100) Major' : 100.0,
-            '5. (100+) Severe': 400.0
+            '4. (50+) Major' : 400.0,
         }
         self.altitude_column = 'tudelft_thermo__altitude__[m]'
         self.altitude_ranges = {
@@ -59,7 +58,6 @@ class Benchmark():
         self.metrics = {
             'RMSE': rmse,
             'MAPE': mape,
-            'Correlation': correlation
         }
 
         self.model_column_map = {
@@ -67,22 +65,25 @@ class Benchmark():
             'Nrlmsise': 'NRLMSISE00__thermospheric_density__[kg/m**3]',
             self.model_name: 'model'
         }
+        # Models use dropout and therefore have stochastic outputs. This
+        # means that we need to run multiple runs to get the distribution
+        self.model_runs = 1
 
     def evaluate_model(self, dataset, model):
         """
         Evaluates the model on the dataset with multiple metrics
         """
         test_dataset = self.get_predictions_and_targets(dataset, model)
-        self.analyze_dataframe(test_dataset)
+        return self.analyze_dataframe(test_dataset)
 
     def analyze_dataframe(self, test_dataset):
         print('Evaluating Storm Condition Results.')
+        results = pd.DataFrame(columns=['Model', 'Metric Value', 'Condition', 'Support', 'Metric Type'])
         storm_bins = np.digitize(
             test_dataset[self.ap_column].astype(float).values,
             np.array(list(self.storm_thresholds.values()))
         )
         test_dataset['storm_classification'] = storm_bins
-        storm_results = pd.DataFrame(columns=['Model', 'Metric Value', 'Condition', 'Support', 'Metric Type'])
 
         for storm_index, storm_condition in enumerate(self.storm_thresholds.keys()):
             storm_dataset = test_dataset[test_dataset['storm_classification'] == storm_index]
@@ -97,19 +98,13 @@ class Benchmark():
                         'Metric Value': metric_function(prediction, target),
                         'Support': len(storm_dataset),
                     }
-                    storm_results = storm_results.append(entry, ignore_index=True)
+                    results = results.append(entry, ignore_index=True)
 
-        storm_file = os.path.join(self.output_directory, f'{self.model_name}_storm_results.csv')
-        print('Saving storm results to', storm_file)
-        storm_results.to_csv(storm_file)
-
-        print('Evaluating Altitude Results.')
         altitude_bins = np.digitize(
             test_dataset[self.altitude_column].astype(float).values,
             np.array(list(self.altitude_ranges.values()))
         )
         test_dataset['altitude_classification'] = altitude_bins
-        altitude_results = pd.DataFrame(columns=['Model','Metric Value', 'Condition', 'Support', 'Metric Type'])
 
         for altitude_index, altitude_range in enumerate(self.altitude_ranges.keys()):
             altitude_dataset = test_dataset[test_dataset['altitude_classification'] == altitude_index]
@@ -124,13 +119,8 @@ class Benchmark():
                         'Metric Value': metric_function(prediction, target),
                         'Support': len(altitude_dataset),
                     }
-                    altitude_results = altitude_results.append(entry, ignore_index=True)
+                    results = results.append(entry, ignore_index=True)
 
-        altitude_file = os.path.join(self.output_directory, f'{self.model_name}_altitude_results.csv')
-        print('Saving altitude results to', altitude_file)
-        altitude_results.to_csv(os.path.join(self.output_directory, f'{self.model_name}_altitude_results.csv'))
-
-        total_results = pd.DataFrame(columns=['Model', 'Metric Value', 'Support', 'Metric Type'])
         target = test_dataset[self.density_column].values.astype(float)
         for model, column_name in self.model_column_map.items():
             for metric, metric_function in self.metrics.items():
@@ -138,14 +128,16 @@ class Benchmark():
                 entry = {
                     'Model': model,
                     'Metric Type': metric,
+                    'Condition': 'No condition',
                     'Metric Value': metric_function(prediction, target),
                     'Support': len(test_dataset),
                 }
-                total_results = total_results.append(entry, ignore_index=True)
+                results = results.append(entry, ignore_index=True)
 
-        total_file = os.path.join(self.output_directory, f'{self.model_name}_total_results.csv')
-        print('Saving total results to', total_file)
-        total_results.to_csv(os.path.join(self.output_directory, f'{self.model_name}_total_results.csv'))
+        output_file = os.path.join(self.output_directory, f'{self.model_name}_results.csv')
+        print('Saving results to', output_file)
+        results.to_csv(output_file)
+        return results
 
     def get_predictions_and_targets(self, dataset, model):
         """
@@ -153,21 +145,28 @@ class Benchmark():
         """
         targets = []
         predictions = []
-        test_indices=np.array(self.test_indices)
-        test_indices=test_indices[test_indices<len(dataset)]
-        dataset_test_indices = [dataset.index_list[i] for i in test_indices]
 
-        loader = DataLoader(Subset(dataset, test_indices),
+        loader = DataLoader(dataset.test_dataset(),
                             batch_size=self.batch_size,
-                            num_workers=self.num_workers)
+                            num_workers=self.num_workers,
+                            drop_last=False)
 
         with torch.no_grad():
-            model.train(False)
+            # Dropout seems to work awfully with regression. However, in the case that it is enabled
+            # we can run the model multiple times to take a mean.
+            model.train(True)
             for batch in tqdm(loader):
                 [batch.__setitem__(key, batch[key].to(self.device)) for key in batch.keys()]
-                prediction = model.forward(batch)
+                if model.dropout == 0.0:
+                    times_to_run = 1
+                else:
+                    times_to_run = self.model_runs
+                dropout_predictions = []
+                for _ in range(times_to_run):
+                    dropout_predictions.append(model.forward(batch))
+                dropout_predictions = torch.stack(dropout_predictions, dim=1)
                 targets.append(batch['target'])
-                predictions.append(prediction)
+                predictions.append(torch.mean(dropout_predictions, dim=1))
 
         predictions = torch.flatten(
             torch.cat(predictions)
@@ -179,11 +178,9 @@ class Benchmark():
 
         predictions = dataset.unscale_density(predictions)
         targets = dataset.unscale_density(targets)
-
-        dataset.data_thermo['model'] = 0.0
-        dataset.data_thermo.loc[dataset_test_indices, 'model'] = predictions.astype(float)
-        test_dataset = dataset.data_thermo.loc[dataset_test_indices, :]
-        model_results_file = os.path.join(self.output_directory, f'{self.model_name}_model_outputs.csv')
+        dataset.data_thermo['data']['model'] = 0.0
+        dataset.data_thermo['data'].loc[dataset.test_indices, 'model'] = predictions.astype(float)
+        test_dataset = dataset.data_thermo['data'].loc[dataset.test_indices, :]
         # Only save columns that are useful (its a lot of data)
         test_dataset_columns = [
             self.jb08_column,
@@ -200,8 +197,6 @@ class Benchmark():
         test_dataset = test_dataset[test_dataset[self.density_column] > self.density_threshold_ignore]
         end_length = len(test_dataset)
         print(f'Removed {starting_length - end_length} entries with outlier densities below {self.density_threshold_ignore}')
-        # print('Saving model outputs to', model_results_file)
-        # test_dataset.to_csv(model_results_file)
         return test_dataset
 
 
@@ -224,11 +219,8 @@ def correlation(x,y):
 
 if __name__ == '__main__':
     print('Karman Model Evaluation')
-
-
     f = Figlet(font='5lineoblique')
     print(colored(f.renderText('KARMAN'), 'red'))
-
     f = Figlet(font='digital')
     print(colored(f.renderText("Thermospheric  density  calculations"), 'blue'))
     print(colored(f'Version {karman.__version__}\n','blue'))
@@ -249,67 +241,28 @@ if __name__ == '__main__':
     print('Loading Data')
     model_opt=torch.load(model_path)['opt']
 
-    dataset = karman.ThermosphericDensityDataset(
-        directory=opt.data_directory,
-        exclude_omni=model_opt.exclude_omni,
-        exclude_fism2_daily=model_opt.exclude_fism2_daily,
-        exclude_fism2_flare=model_opt.exclude_fism2_flare,
+    dataset=karman.ThermosphericDensityDataset(
+        directory=model_opt.data_directory,
         lag_minutes_omni=model_opt.lag_minutes_omni,
-        lag_days_fism2_daily=model_opt.lag_days_fism2_daily,
-        lag_minutes_fism2_flare=model_opt.lag_minutes_fism2_flare,
-        wavelength_bands_to_skip=model_opt.wavelength_bands_to_skip,
-        omniweb_downsampling_ratio=model_opt.omniweb_downsampling_ratio,
-        features_to_exclude_omni=model_opt.features_to_exclude_omni,
+        lag_minutes_fism2_flare_stan_bands=model_opt.lag_fism2_minutes_flare_stan_bands,
+        lag_minutes_fism2_daily_stan_bands=model_opt.lag_fism2_minutes_daily_stan_bands,
+        omni_resolution=model_opt.omni_resolution,
+        fism2_flare_stan_bands_resolution=model_opt.fism2_flare_stan_bands_resolution,
+        fism2_daily_stan_bands_resolution=model_opt.fism2_daily_stan_bands_resolution,
         features_to_exclude_thermo=model_opt.features_to_exclude_thermo,
-        features_to_exclude_fism2_flare=model_opt.features_to_exclude_fism2_flare,
-        features_to_exclude_fism2_daily=model_opt.features_to_exclude_fism2_daily
+        features_to_exclude_omni=model_opt.features_to_exclude_omni,
+        features_to_exclude_fism2_flare_stan_bands=model_opt.features_to_exclude_fism2_flare_stan_bands,
+        features_to_exclude_fism2_daily_stan_bands=model_opt.features_to_exclude_fism2_daily_stan_bands,
+        create_cyclical_features=model_opt.cyclical_features,
+        test_month_idx=[int(i) for i in model_opt.test_month_idx],
+        validation_month_idx=[int(i) for i in model_opt.validation_month_idx],
     )
 
     print('Loading Model')
 
-    if model_opt.model == 'FeedForwardDensityPredictor':
-        # Will only use an FFNN with just the thermo static features data
-        model = FeedForwardDensityPredictor(
-                            num_features=dataset.data_thermo_matrix.shape[1]
-                            )
-    elif model_opt.model=='Fism2FlareDensityPredictor':
-        if model_opt.exclude_fism2_daily and model_opt.exclude_omni:
-            model=Fism2FlareDensityPredictor(
-                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
-                            input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
-                            output_size_fism2_flare=20
-                            )
-        else:
-            raise RuntimeError(f"exclude_fism2_daily and exclude_omni are not set to True; while model chosen is {model_opt.model}")
-    elif model_opt.model=='Fism2DailyDensityPredictor':
-        if model_opt.exclude_fism2_flare and model_opt.exclude_omni:
-            model=Fism2DailyDensityPredictor(
-                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
-                            input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
-                            output_size_fism2_daily=20
-                            )
-        else:
-            raise RuntimeError(f"exclude_fism2_flare and exclude_omni are not set to True; while model chosen is {model_opt.model}")
-    elif model_opt.model=='OmniDensityPredictor':
-        if model_opt.exclude_fism2_daily and model_opt.exclude_fism2_flare:
-            model=OmniDensityPredictor(
-                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
-                            input_size_omni=dataset.data_omni_matrix.shape[1],
-                            output_size_omni=20
-                            )
-        else:
-            raise RuntimeError(f"exclude_fism2_daily and exclude_fism2_flare are not set to True; while model chosen is {model_opt.model}")
-    elif model_opt.model == 'FullFeatureDensityPredictor':
-        if model_opt.exclude_omni==False and model_opt.exclude_fism2_flare==False and model_opt.exclude_fism2_daily==False:
-            model = FullFeatureDensityPredictor(
-                            input_size_thermo=dataset.data_thermo_matrix.shape[1],
-                            input_size_fism2_flare=dataset.fism2_flare_irradiance_matrix.shape[1],
-                            input_size_fism2_daily=dataset.fism2_daily_irradiance_matrix.shape[1],
-                            input_size_omni=dataset.data_omni_matrix.shape[1],
-                            output_size_fism2_flare=20,
-                            output_size_fism2_daily=20,
-                            output_size_omni=20
-                            )
+    if model_opt.model == 'FullFeatureFeedForward':
+        model = FullFeatureFeedForward(dropout=model_opt.dropout).to(dtype=torch.float32)
+
     state_dict = torch.load(os.path.join(model_path))['state_dict']
     #Sanitize state_dict key names
     for key in list(state_dict.keys()):
@@ -321,15 +274,22 @@ if __name__ == '__main__':
             continue
     model.load_state_dict(state_dict)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #Need to do this if using the LazyLinear Module (avoids having to hard code input layers to a linear layer)
+    dummy_loader = torch.utils.data.DataLoader(dataset.validation_dataset(),
+                                                        batch_size=2,
+                                                        pin_memory=False,
+                                                        num_workers=0,
+                                                        drop_last=True)
+    model.forward(next(iter(dummy_loader)))
     model.to(device)
 
-    if torch.cuda.device_count()>1:
-        print(f"Parallelizing the model on {torch.cuda.device_count()} GPUs")
-        model=nn.DataParallel(model)
+    # if torch.cuda.device_count()>1:
+    #     print(f"Parallelizing the model on {torch.cuda.device_count()} GPUs")
+    #     model=nn.DataParallel(model)
 
     benchmark = Benchmark(
         batch_size=opt.batch_size,
         num_workers=opt.num_workers,
-        data_directory=opt.data_directory,
+        data_directory=model_opt.data_directory,
         output_directory=opt.model_folder,
         model_name=opt.model_name).evaluate_model(dataset, model)

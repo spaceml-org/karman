@@ -1,0 +1,38 @@
+program: scripts/train.py
+method: bayes
+metric:
+  name: best_validation_loss_fold_4
+  goal: minimize
+parameters:
+  learning_rate:
+    min: 0.00001
+    max: 0.001
+    distribution: log_uniform_values
+  folds:
+    values: ['4']
+  batch_size:
+    values: [1024]
+  epochs:
+    values: [20]
+  weight_decay:
+    min: 0.0000001
+    max: 0.0001
+    distribution: log_uniform_values
+  out_features:
+    values: [25, 50, 75, 100, 125, 150]
+  hidden_size:
+    values: [50, 100, 150, 200, 250, 300]
+  num_workers:
+    values: [20]
+  train_subsample:
+    values: [5_000_000]
+  cyclical_features:
+    values: [true]
+  run_benchmark:
+    values: [false]
+  run_tests:
+    values: [false]
+command:
+  - python
+  - ${program}
+  - ${args}

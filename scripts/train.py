@@ -107,6 +107,9 @@ def run():
     parser.add_argument('--train_subsample', default=None)
     parser.add_argument('--run_benchmark', default=True, type=bool)
     parser.add_argument('--run_tests', default=True, type=bool)
+    parser.add_argument('--exclude_fism2_flare_stan_bands', default=False, type=bool)
+    parser.add_argument('--exclude_fism2_daily_stan_bands', default=False, type=bool)
+    parser.add_argument('--exclude_omni', default=False, type=bool)
 
     opt = parser.parse_args()
     wandb.init(project='karman', config=vars(opt))
@@ -136,7 +139,10 @@ def run():
         features_to_exclude_omni=opt.features_to_exclude_omni,
         features_to_exclude_fism2_flare_stan_bands=opt.features_to_exclude_fism2_flare_stan_bands,
         features_to_exclude_fism2_daily_stan_bands=opt.features_to_exclude_fism2_daily_stan_bands,
-        create_cyclical_features=opt.cyclical_features
+        create_cyclical_features=opt.cyclical_features,
+        exclude_fism2_flare_stan_bands=opt.exclude_fism2_flare_stan_bands=='True',
+        exclude_fism2_daily_stan_bands=opt.exclude_fism2_daily_stan_bands=='True',
+        exclude_omni=opt.exclude_omni=='True'
     )
 
     # Create train, valid, test dataloaders. Shuffle is false for validation and test

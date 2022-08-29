@@ -21,15 +21,21 @@ parameters:
   num_workers:
     values: [20]
   cyclical_features:
-    values: [true]
+    values: [True]
   run_benchmark:
-    values: [false]
+    values: [True]
   run_tests:
-    values: [false]
+    values: [True]
   lag_minutes_fism2_daily_stan_bands:
     values: [0, 28800, 57600, 86400, 115200, 144000]
   lag_minutes_omni:
     values: [2880]
+  exclude_fism2_flare_stan_bands:
+    values: [False]
+  exclude_fism2_daily_stan_bands:
+    values: [False]
+  exclude_omni:
+    values: [False]
 command:
   - python
   - ${program}

@@ -6,7 +6,7 @@ import time
 
 import datetime
 import karman
-from karman import FullFeatureFeedForward, Benchmark
+from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward
 import numpy as np
 import torch
 from torch import optim
@@ -97,7 +97,7 @@ def run():
     parser.add_argument('--lag_fism2_minutes_daily_stan_bands', default=1440, type=int)
     parser.add_argument('--run_name', default='', help='Run name to be stored in wandb')
     parser.add_argument('--cyclical_features', default=True, type=bool)
-    parser.add_argument('--model', default='FullFeatureFeedForward', choices=['FullFeatureFeedForward'])
+    parser.add_argument('--model', default='FullFeatureFeedForward', choices=['FullFeatureFeedForward', 'NoFism2FlareFeedForward'])
     parser.add_argument('--dropout', default=0.0, type=float)
     parser.add_argument('--folds',
                         default='1',
@@ -107,9 +107,6 @@ def run():
     parser.add_argument('--train_subsample', default=None)
     parser.add_argument('--run_benchmark', default=True, type=bool)
     parser.add_argument('--run_tests', default=True, type=bool)
-    parser.add_argument('--exclude_fism2_flare_stan_bands', default=False, type=bool)
-    parser.add_argument('--exclude_fism2_daily_stan_bands', default=False, type=bool)
-    parser.add_argument('--exclude_omni', default=False, type=bool)
 
     opt = parser.parse_args()
     wandb.init(project='karman', config=vars(opt))
@@ -154,6 +151,11 @@ def run():
 
     if opt.model == 'FullFeatureFeedForward':
         model = FullFeatureFeedForward(
+            dropout=opt.dropout,
+            hidden_size=opt.hidden_size,
+            out_features=opt.out_features).to(dtype=torch.float32)
+    elif opt.model == 'NoFism2FlareFeedForward':
+        model = NoFism2FlareFeedForward(
             dropout=opt.dropout,
             hidden_size=opt.hidden_size,
             out_features=opt.out_features).to(dtype=torch.float32)

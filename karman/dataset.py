@@ -46,38 +46,32 @@ class ThermosphericDensityDataset(Dataset):
         features_to_exclude_fism2_flare_stan_bands=['all__dates_datetime__'],
         features_to_exclude_fism2_daily_stan_bands=['all__dates_datetime__'],
         create_cyclical_features=True,
-        exclude_fism2_flare_stan_bands=False,
-        exclude_fism2_daily_stan_bands=False,
-        exclude_omni=False
     ):
         self.create_cyclical_features = create_cyclical_features
         self._directory = directory
         self.time_series_data = {}
 
         # Add time series data here.
-        if not exclude_omni:
-            print("Loading Omni.")
-            self._add_time_series_data('omni',
+        print("Loading Omni.")
+        self._add_time_series_data('omni',
                                        'data_omniweb_v1/omniweb_1min_data_2001_2022.h5',
                                        lag_minutes_omni,
                                        omni_resolution,
                                        features_to_exclude_omni)
 
-        if not exclude_fism2_flare_stan_bands:
-            print("Loading FISM2 Flare Stan bands.")
-            self._add_time_series_data('fism2_flare_stan_bands',
-                                       'fism2_flare_stan_bands.h5',
-                                       lag_minutes_fism2_flare_stan_bands,
-                                       fism2_flare_stan_bands_resolution,
-                                       features_to_exclude_fism2_flare_stan_bands)
+        print("Loading FISM2 Flare Stan bands.")
+        self._add_time_series_data('fism2_flare_stan_bands',
+                                   'fism2_flare_stan_bands.h5',
+                                   lag_minutes_fism2_flare_stan_bands,
+                                   fism2_flare_stan_bands_resolution,
+                                   features_to_exclude_fism2_flare_stan_bands)
 
-        if not exclude_fism2_daily_stan_bands:
-            print("Loading FISM2 Daily Stan bands.")
-            self._add_time_series_data('fism2_daily_stan_bands',
-                                       'fism2_daily_stan_bands.h5',
-                                       lag_minutes_fism2_daily_stan_bands,
-                                       fism2_daily_stan_bands_resolution,
-                                       features_to_exclude_fism2_daily_stan_bands)
+        print("Loading FISM2 Daily Stan bands.")
+        self._add_time_series_data('fism2_daily_stan_bands',
+                                   'fism2_daily_stan_bands.h5',
+                                   lag_minutes_fism2_daily_stan_bands,
+                                   fism2_daily_stan_bands_resolution,
+                                   features_to_exclude_fism2_daily_stan_bands)
 
         print('Creating thermospheric density dataset')
         self.data_thermo = {}

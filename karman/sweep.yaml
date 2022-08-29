@@ -36,6 +36,8 @@ parameters:
     values: [False]
   exclude_omni:
     values: [False]
+  model:
+    values: [NoFism2FlareFeedForward]
 command:
   - python
   - ${program}

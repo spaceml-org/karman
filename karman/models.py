@@ -59,7 +59,7 @@ class FullFeatureFeedForward(nn.Module):
 
 class NoFism2FlareFeedForward(nn.Module):
     def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(FullFeatureFeedForward, self).__init__()
+        super(NoFism2FlareFeedForward, self).__init__()
         self.dropout = dropout
         self.name = 'Full Feature Feed Forward'
         self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)

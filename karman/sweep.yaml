@@ -20,8 +20,6 @@ parameters:
     values: [500]
   num_workers:
     values: [20]
-  cyclical_features:
-    values: [True]
   run_benchmark:
     values: [True]
   run_tests:

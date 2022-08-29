@@ -6,7 +6,7 @@ import time
 
 import datetime
 import karman
-from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward
+from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward, NoFism2DailyFeedForward, NoOmniFeedForward
 import numpy as np
 import torch
 from torch import optim
@@ -97,7 +97,12 @@ def run():
     parser.add_argument('--lag_fism2_minutes_daily_stan_bands', default=1440, type=int)
     parser.add_argument('--run_name', default='', help='Run name to be stored in wandb')
     parser.add_argument('--cyclical_features', default=True, type=bool)
-    parser.add_argument('--model', default='FullFeatureFeedForward', choices=['FullFeatureFeedForward', 'NoFism2FlareFeedForward'])
+    parser.add_argument('--model',
+                        default='FullFeatureFeedForward',
+                        choices=['FullFeatureFeedForward',
+                                 'NoFism2FlareFeedForward',
+                                 'NoFism2DailyFeedForward',
+                                 'NoOmniFeedForward'])
     parser.add_argument('--dropout', default=0.0, type=float)
     parser.add_argument('--folds',
                         default='1',
@@ -153,6 +158,16 @@ def run():
             out_features=opt.out_features).to(dtype=torch.float32)
     elif opt.model == 'NoFism2FlareFeedForward':
         model = NoFism2FlareFeedForward(
+            dropout=opt.dropout,
+            hidden_size=opt.hidden_size,
+            out_features=opt.out_features).to(dtype=torch.float32)
+    elif opt.model == 'NoFism2DailyFeedForward':
+        model = NoFism2DailyFeedForward(
+            dropout=opt.dropout,
+            hidden_size=opt.hidden_size,
+            out_features=opt.out_features).to(dtype=torch.float32)
+    elif opt.model == 'NoOmniFeedForward':
+        model = NoOmniFeedForward(
             dropout=opt.dropout,
             hidden_size=opt.hidden_size,
             out_features=opt.out_features).to(dtype=torch.float32)

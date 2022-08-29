@@ -136,10 +136,7 @@ def run():
         features_to_exclude_omni=opt.features_to_exclude_omni,
         features_to_exclude_fism2_flare_stan_bands=opt.features_to_exclude_fism2_flare_stan_bands,
         features_to_exclude_fism2_daily_stan_bands=opt.features_to_exclude_fism2_daily_stan_bands,
-        create_cyclical_features=opt.cyclical_features,
-        exclude_fism2_flare_stan_bands=opt.exclude_fism2_flare_stan_bands=='True',
-        exclude_fism2_daily_stan_bands=opt.exclude_fism2_daily_stan_bands=='True',
-        exclude_omni=opt.exclude_omni=='True'
+        create_cyclical_features=opt.cyclical_features
     )
 
     # Create train, valid, test dataloaders. Shuffle is false for validation and test

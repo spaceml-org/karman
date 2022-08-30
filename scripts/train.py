@@ -186,6 +186,10 @@ def run():
     time_start=datetime.datetime.now()
 
     for fold in opt.folds.split(','):
+        # Need to reset the model weights after each fold.
+        for layer in model.children():
+            if hasattr(layer, 'reset_parameters'):
+                layer.reset_parameters()
         test_month_idx = 2 * (int(fold) - 1)
         validation_month_idx = test_month_idx + 2
         dataset._set_indices(test_month_idx=[test_month_idx], validation_month_idx=[validation_month_idx])

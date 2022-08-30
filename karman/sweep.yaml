@@ -19,23 +19,17 @@ parameters:
   hidden_size:
     values: [500]
   num_workers:
-    values: [20]
+    values: [15]
   run_benchmark:
     values: [True]
   run_tests:
     values: [True]
-  lag_fism2_minutes_daily_stan_bands:
-    values: [0, 28800, 57600, 86400, 115200, 144000]
+  lag_fism2_minutes_flare_stan_bands:
+    values: [0, 240, 480, 720, 960, 1200, 1440]
   lag_minutes_omni:
     values: [2880]
-  exclude_fism2_flare_stan_bands:
-    values: [True]
-  exclude_fism2_daily_stan_bands:
-    values: [False]
-  exclude_omni:
-    values: [False]
   model:
-    values: [NoFism2FlareFeedForward]
+    values: [NoFism2DailyFeedForward]
 command:
   - python
   - ${program}

@@ -30,6 +30,8 @@ parameters:
     values: [2880]
   model:
     values: [NoFism2DailyFeedForward]
+  features_to_exclude_thermo:
+    values: ['all__dates_datetime__ tudelft_thermo__satellite__ tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3] NRLMSISE00__thermospheric_density__[kg/m**3] JB08__thermospheric_density__[kg/m**3] space_environment_technologies__f107_obs__ space_environment_technologies__f107_average__ space_environment_technologies__s107_obs__ space_environment_technologies__s107_average__ space_environment_technologies__m107_obs__ space_environment_technologies__m107_average__ space_environment_technologies__y107_obs__ space_environment_technologies__y107_average__']
 command:
   - python
   - ${program}

@@ -6,7 +6,7 @@ import time
 
 import datetime
 import karman
-from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward, NoFism2DailyFeedForward, NoOmniFeedForward
+from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward, NoFism2DailyFeedForward, NoOmniFeedForward, NoFism2FlareAndDailyFeedForward
 import numpy as np
 import torch
 from torch import optim
@@ -79,7 +79,8 @@ def run():
                         choices=['FullFeatureFeedForward',
                                  'NoFism2FlareFeedForward',
                                  'NoFism2DailyFeedForward',
-                                 'NoOmniFeedForward'])
+                                 'NoOmniFeedForward',
+                                 'NoFism2FlareAndDailyFeedForward'])
     parser.add_argument('--dropout', default=0.0, type=float)
     parser.add_argument('--folds',
                         default='1',
@@ -145,6 +146,11 @@ def run():
             out_features=opt.out_features).to(dtype=torch.float32)
     elif opt.model == 'NoOmniFeedForward':
         model = NoOmniFeedForward(
+            dropout=opt.dropout,
+            hidden_size=opt.hidden_size,
+            out_features=opt.out_features).to(dtype=torch.float32)
+    elif opt.model == 'NoFism2FlareAndDailyFeedForward':
+        model =  NoFism2FlareAndDailyFeedForward(
             dropout=opt.dropout,
             hidden_size=opt.hidden_size,
             out_features=opt.out_features).to(dtype=torch.float32)

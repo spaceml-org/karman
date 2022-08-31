@@ -57,6 +57,24 @@ class FullFeatureFeedForward(nn.Module):
         ], dim=1)
         return self.regressor(concatenated_features)
 
+class NoFism2FlareAndDailyFeedForward(nn.Module):
+    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
+        super(NoFism2FlareFeedForward, self).__init__()
+        self.dropout = dropout
+        self.name = 'Full Feature Feed Forward'
+        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
+        self.fc_omni = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
+        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
+
+    def forward(self, x):
+        thermo_features = self.fc_thermo(x['instantaneous_features'])
+        omni_features = self.fc_omni(x['omni'])
+        concatenated_features = torch.cat([
+            thermo_features,
+            omni_features
+        ], dim=1)
+        return self.regressor(concatenated_features)
+
 class NoFism2FlareFeedForward(nn.Module):
     def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
         super(NoFism2FlareFeedForward, self).__init__()

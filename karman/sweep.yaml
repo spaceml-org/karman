@@ -25,7 +25,7 @@ parameters:
   run_tests:
     values: [True]
   lag_fism2_minutes_flare_stan_bands:
-    values: [0, 240, 480, 720, 960, 1200, 1440]
+    values: [0, 480, 960, 1440, 1920, 2400, 2880]
   lag_minutes_omni:
     values: [2880]
   model:

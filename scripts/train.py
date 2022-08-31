@@ -51,15 +51,15 @@ def run():
     parser.add_argument('--weight_decay', help='Weight decay: optimizer parameter', default=0., type=float)
     parser.add_argument('--optimizer', help='Optimizer to use', default='adam', choices=['adam', 'sgd'])
     parser.add_argument('--lag_minutes_omni', help='Time lag (in minutes) to consider for the OMNIWeb data', default=6*60, type=float)
-    parser.add_argument('--features_to_exclude_omni', help='Features to exclude for OMNI data', default=['all__dates_datetime__,omniweb__id_for_imf_spacecraft__,omniweb__id_for_sw_plasma_spacecraft__,omniweb__#_of_points_in_imf_averages__,omniweb__#_of_points_in_plasma_averages__,omniweb__percent_of_interpolation__,omniweb__timeshift__[s],omniweb__rms_timeshift__[s],omniweb__rms_min_variance__[s**2],omniweb__time_btwn_observations__[s],omniweb__rms_sd_b_scalar__[nT],omniweb__rms_sd_b_field_vector__[nT],omniweb__flow_pressure__[nPa],omniweb__electric_field__[mV/m],omniweb__plasma_beta__,omniweb__alfven_mach_number__,omniweb__magnetosonic_mach_number__,omniweb__s/cx_gse__[Re],omniweb__s/cy_gse__[Re],omniweb__s/cz_gse__[Re]'], type=str)
-    parser.add_argument('--features_to_exclude_thermo', help='Features to exclude for thermospheric data', default=['all__dates_datetime__,tudelft_thermo__satellite__,tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3],NRLMSISE00__thermospheric_density__[kg/m**3],JB08__thermospheric_density__[kg/m**3]'], type=str)
+    parser.add_argument('--features_to_exclude_omni', help='Features to exclude for OMNI data', default='all__dates_datetime__,omniweb__id_for_imf_spacecraft__,omniweb__id_for_sw_plasma_spacecraft__,omniweb__#_of_points_in_imf_averages__,omniweb__#_of_points_in_plasma_averages__,omniweb__percent_of_interpolation__,omniweb__timeshift__[s],omniweb__rms_timeshift__[s],omniweb__rms_min_variance__[s**2],omniweb__time_btwn_observations__[s],omniweb__rms_sd_b_scalar__[nT],omniweb__rms_sd_b_field_vector__[nT],omniweb__flow_pressure__[nPa],omniweb__electric_field__[mV/m],omniweb__plasma_beta__,omniweb__alfven_mach_number__,omniweb__magnetosonic_mach_number__,omniweb__s/cx_gse__[Re],omniweb__s/cy_gse__[Re],omniweb__s/cz_gse__[Re]', type=str)
+    parser.add_argument('--features_to_exclude_thermo', help='Features to exclude for thermospheric data', default='all__dates_datetime__,tudelft_thermo__satellite__,tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3],NRLMSISE00__thermospheric_density__[kg/m**3],JB08__thermospheric_density__[kg/m**3]', type=str)
     parser.add_argument('--features_to_exclude_fism2_flare_stan_bands',
                         help='Features to exclude for fism2 flare stan bands',
-                        default=['all__dates_datetime__'],
+                        default='all__dates_datetime__',
                         type=str)
     parser.add_argument('--features_to_exclude_fism2_daily_stan_bands',
                         help='Features to exclude for fism2 daily stan bands',
-                        default=['all__dates_datetime__'],
+                        default='all__dates_datetime__',
                         type=str)
     parser.add_argument('--omni_resolution',
                         help='Resolution in minutes for omniweb geomagnetic data',

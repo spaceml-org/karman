@@ -124,6 +124,8 @@ def run():
 
     time_start=datetime.datetime.now()
 
+    benchmark_results = []
+
     for fold in opt.folds.split(','):
         if opt.model == 'FullFeatureFeedForward':
             model = FullFeatureFeedForward(
@@ -191,6 +193,7 @@ def run():
         best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}_fold_{fold}")
         loss_function = nn.MSELoss()
         best_validation_loss = np.inf
+        test_fold_losses = []
         for epoch in range(opt.epochs):
             model.train(True)
             for i, batch in tqdm(enumerate(train_loader), total=len(train_loader), desc=f'Running Train epoch {epoch}'):
@@ -214,23 +217,47 @@ def run():
                 if validation_loss < best_validation_loss:
                     best_validation_loss = validation_loss
                     wandb.log({f'best_validation_loss_fold_{fold}': best_validation_loss})
+                    reported_test_loss = test_loss
                     print(f"Saving best model to: {best_model_path} \n")
                     torch.save({'state_dict': model.state_dict(),
                                 'opt': opt}, best_model_path)
                     wandb.log({f'reported_test_loss_fold_{fold}': test_loss})
                     best_state_dict = copy.deepcopy(model.state_dict())
 
+        test_fold_losses.append(reported_test_loss)
+
         # Run benchmark at the end of fold
         if opt.run_benchmark:
             print('Running benchmarks')
             model.load_state_dict(best_state_dict)
-            benchmark_results = Benchmark(batch_size=opt.batch_size,
+            fold_model_name = f'{opt.run_name}_fold_{fold}'
+            fold_benchmark_results = Benchmark(batch_size=opt.batch_size,
                                         num_workers=opt.num_workers,
                                         data_directory=opt.data_directory,
                                         output_directory=opt.output_directory,
-                                        model_name=f'{opt.run_name}_fold_{fold}').evaluate_model(dataset, model)
-            wandb_table = wandb.Table(dataframe=benchmark_results)
-            wandb.log({f"model_results_fold_{fold}": wandb_table})
+                                        model_name=fold_model_name).evaluate_model(dataset, model)
+            # wandb_table = wandb.Table(dataframe=benchmark_results)
+            # wandb.log({f"model_results_fold_{fold}": wandb_table})
+
+            for row in fold_benchmark_results.iterrows():
+                if row['model'] == fold_model_name:
+                    wandb.log({f'reported_test_fold_{fold}_{row['Metric Type']}_{row['Condition']}': row['Metric Value']})
+            #Ignore NRLMSISE and JB08 entries
+            benchmark_results.append(fold_benchmark_results[fold_benchmark_results['Model'] == fold_model_name])
+
+    benchmark_results = pd.concat(benchmark_results, ignore_index=True)
+    #Skipna is True because sometimes the categories might be empty, like in sever storms.
+    benchmark_results_mean = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).mean()
+    benchmark_results_std = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).std()
+
+    for row in benchmark_results_mean.iterrows():
+        wandb.log({f'reported_test_mean_{row['Metric Type']}_{row['Condition']}': row['Metric Value']})
+    for row in benchmark_results_std.iterrows():
+        wandb.log({f'reported_test_std_{row['Metric Type']}_{row['Condition']}': row['Metric Value']})
+
+    wandb.log({'reported_test_loss_mean': np.mean(test_fold_losses))
+    wandb.log({'reported_test_loss_std': np.std(test_fold_losses))
+
 
 if __name__ == "__main__":
     time_start = time.time()

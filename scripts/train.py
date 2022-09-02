@@ -122,57 +122,48 @@ def run():
         create_cyclical_features=opt.cyclical_features
     )
 
-    # Create train, valid, test dataloaders. Shuffle is false for validation and test
-    # datasets to preserve order.
-
-    validation_step_loader = torch.utils.data.DataLoader(dataset,
-                                                         batch_size=2,
-                                                         num_workers=0)
-
-    if opt.model == 'FullFeatureFeedForward':
-        model = FullFeatureFeedForward(
-            dropout=opt.dropout,
-            hidden_size=opt.hidden_size,
-            out_features=opt.out_features).to(dtype=torch.float32)
-    elif opt.model == 'NoFism2FlareFeedForward':
-        model = NoFism2FlareFeedForward(
-            dropout=opt.dropout,
-            hidden_size=opt.hidden_size,
-            out_features=opt.out_features).to(dtype=torch.float32)
-    elif opt.model == 'NoFism2DailyFeedForward':
-        model = NoFism2DailyFeedForward(
-            dropout=opt.dropout,
-            hidden_size=opt.hidden_size,
-            out_features=opt.out_features).to(dtype=torch.float32)
-    elif opt.model == 'NoOmniFeedForward':
-        model = NoOmniFeedForward(
-            dropout=opt.dropout,
-            hidden_size=opt.hidden_size,
-            out_features=opt.out_features).to(dtype=torch.float32)
-    elif opt.model == 'NoFism2FlareAndDailyFeedForward':
-        model =  NoFism2FlareAndDailyFeedForward(
-            dropout=opt.dropout,
-            hidden_size=opt.hidden_size,
-            out_features=opt.out_features).to(dtype=torch.float32)
-
-    #Need to do this if using the LazyLinear Module (avoids having to hard code input layers to a linear layer)..sue me
-    model.forward(next(iter(validation_step_loader)))
-
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    print(f"Device is: {device}")
-    model.to(device).to(dtype=torch.float32)
-
-    optimizer=optim.Adam(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
-
     time_start=datetime.datetime.now()
 
     for fold in opt.folds.split(','):
-        # Need to reset the model weights after each fold.
-        for layer in model.children():
-            if hasattr(layer, 'reset_parameters'):
-                layer.reset_parameters()
+        if opt.model == 'FullFeatureFeedForward':
+            model = FullFeatureFeedForward(
+                dropout=opt.dropout,
+                hidden_size=opt.hidden_size,
+                out_features=opt.out_features).to(dtype=torch.float32)
+        elif opt.model == 'NoFism2FlareFeedForward':
+            model = NoFism2FlareFeedForward(
+                dropout=opt.dropout,
+                hidden_size=opt.hidden_size,
+                out_features=opt.out_features).to(dtype=torch.float32)
+        elif opt.model == 'NoFism2DailyFeedForward':
+            model = NoFism2DailyFeedForward(
+                dropout=opt.dropout,
+                hidden_size=opt.hidden_size,
+                out_features=opt.out_features).to(dtype=torch.float32)
+        elif opt.model == 'NoOmniFeedForward':
+            model = NoOmniFeedForward(
+                dropout=opt.dropout,
+                hidden_size=opt.hidden_size,
+                out_features=opt.out_features).to(dtype=torch.float32)
+        elif opt.model == 'NoFism2FlareAndDailyFeedForward':
+            model =  NoFism2FlareAndDailyFeedForward(
+                dropout=opt.dropout,
+                hidden_size=opt.hidden_size,
+                out_features=opt.out_features).to(dtype=torch.float32)
+
+        validation_step_loader = torch.utils.data.DataLoader(dataset,
+                                                             batch_size=2,
+                                                             num_workers=0)
+        #Need to do this if using the LazyLinear Module (avoids having to hard code input layers to a linear layer)..sue me
+        model.forward(next(iter(validation_step_loader)))
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        print(f"Device is: {device}")
+        model.to(device).to(dtype=torch.float32)
+
+        optimizer=optim.Adam(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
+
         test_month_idx = 2 * (int(fold) - 1)
         validation_month_idx = test_month_idx + 2
         dataset._set_indices(test_month_idx=[test_month_idx], validation_month_idx=[validation_month_idx])

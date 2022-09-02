@@ -255,8 +255,8 @@ def run():
     for row in benchmark_results_std.iterrows():
         wandb.log({f"reported_test_std_{row['Metric Type']}_{row['Condition']}": row['Metric Value']})
 
-    wandb.log({'reported_test_loss_mean': np.mean(test_fold_losses))
-    wandb.log({'reported_test_loss_std': np.std(test_fold_losses))
+    wandb.log({'reported_test_loss_mean': np.mean(test_fold_losses)})
+    wandb.log({'reported_test_loss_std': np.std(test_fold_losses)})
 
 
 if __name__ == "__main__":

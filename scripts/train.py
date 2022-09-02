@@ -240,7 +240,7 @@ def run():
             # wandb.log({f"model_results_fold_{fold}": wandb_table})
 
             for row in fold_benchmark_results.iterrows():
-                if row[1]['model'] == fold_model_name:
+                if row[1]['Model'] == fold_model_name:
                     wandb.log({f"reported_test_fold_{fold}_{row[1]['Metric Type']}_{row[1]['Condition']}": row[1]['Metric Value']})
             #Ignore NRLMSISE and JB08 entries
             benchmark_results.append(fold_benchmark_results[fold_benchmark_results['Model'] == fold_model_name])

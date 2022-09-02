@@ -241,7 +241,7 @@ def run():
 
             for row in fold_benchmark_results.iterrows():
                 if row['model'] == fold_model_name:
-                    wandb.log({f'reported_test_fold_{fold}_{row['Metric Type']}_{row['Condition']}': row['Metric Value']})
+                    wandb.log({f"reported_test_fold_{fold}_{row['Metric Type']}_{row['Condition']}": row['Metric Value']})
             #Ignore NRLMSISE and JB08 entries
             benchmark_results.append(fold_benchmark_results[fold_benchmark_results['Model'] == fold_model_name])
 
@@ -251,9 +251,9 @@ def run():
     benchmark_results_std = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).std()
 
     for row in benchmark_results_mean.iterrows():
-        wandb.log({f'reported_test_mean_{row['Metric Type']}_{row['Condition']}': row['Metric Value']})
+        wandb.log({f"reported_test_mean_{row['Metric Type']}_{row['Condition']}": row['Metric Value']})
     for row in benchmark_results_std.iterrows():
-        wandb.log({f'reported_test_std_{row['Metric Type']}_{row['Condition']}': row['Metric Value']})
+        wandb.log({f"reported_test_std_{row['Metric Type']}_{row['Condition']}": row['Metric Value']})
 
     wandb.log({'reported_test_loss_mean': np.mean(test_fold_losses))
     wandb.log({'reported_test_loss_std': np.std(test_fold_losses))

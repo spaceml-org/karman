@@ -214,6 +214,7 @@ def run():
         best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}_fold_{fold}")
         loss_function = nn.MSELoss()
         best_validation_loss = np.inf
+        samples_trained = 0
         for epoch in range(opt.epochs):
             model.train(True)
             for i, batch in tqdm(enumerate(train_loader), total=len(train_loader), desc=f'Running Train epoch {epoch}'):
@@ -224,6 +225,9 @@ def run():
                 train_loss.backward()
                 optimizer.step()
                 wandb.log({f'train_loss_fold_{fold}': float(train_loss.detach().item())})
+                #So we can compare plots of different batch sizes
+                samples_trained += int(opt.batch_size)
+                wandb.log({'samples_trained': samples_trained})
 
             if epoch % opt.epochs_per_validation == 0:
                 print("Validating\n")

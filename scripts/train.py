@@ -95,6 +95,7 @@ def run():
     parser.add_argument('--run_benchmark', default=True, type=bool)
     parser.add_argument('--run_tests', default=True, type=bool)
     parser.add_argument('--max_altitude', default=600_000, type=float)
+    parser.add_argument('--lstm_depth', default=2, type=int)
 
     opt = parser.parse_args()
     wandb.init(project='karman', config=vars(opt))
@@ -169,6 +170,7 @@ def run():
                 input_size_thermo=dataset.data_thermo['data_matrix'].shape[1],
                 input_size_fism2_flare=dataset.time_series_data['fism2_flare_stan_bands']['data_matrix'].shape[1],
                 output_size_fism2_flare=opt.out_features,
+                lstm_depth=opt.lstm_depth,
                 dropout_lstm=opt.dropout,
                 dropout_ffnn=opt.dropout
             )

@@ -226,12 +226,14 @@ class OmniDensityPredictor(nn.Module):
     def __init__(self,
                  input_size_thermo,
                  input_size_omni,
+                 lstm_depth=2,
                  output_size_omni=20,
                  dropout_lstm=0.,
                  dropout_ffnn=0.):
         super().__init__()
-        self.model_lstm_omni=LSTMPredictor(input_size=input_size_omni, output_size=output_size_omni, dropout=dropout_lstm)
+        self.model_lstm_omni=LSTMPredictor(input_size=input_size_omni, output_size=output_size_omni, dropout=dropout_lstm, lstm_depth=lstm_depth)
         self.ffnn=FFNN(num_features=input_size_thermo+output_size_omni, dropout=dropout_ffnn)
+        self.dropout=dropout_lstm
 
     def forward(self, batch):
         omni_features = self.model_lstm_omni(batch['omni'])
@@ -248,11 +250,13 @@ class Fism2DailyDensityPredictor(nn.Module):
                  input_size_thermo,
                  input_size_fism2_daily,
                  output_size_fism2_daily=20,
+                 lstm_depth=2,
                  dropout_lstm=0.,
                  dropout_ffnn=0.):
         super().__init__()
-        self.model_lstm_fism2_daily=LSTMPredictor(input_size=input_size_fism2_daily, output_size=output_size_fism2_daily, dropout=dropout_lstm)
+        self.model_lstm_fism2_daily=LSTMPredictor(input_size=input_size_fism2_daily, output_size=output_size_fism2_daily, lstm_depth=lstm_depth, dropout=dropout_lstm)
         self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_daily, dropout=dropout_ffnn)
+        self.dropout=dropout_lstm
 
     def forward(self, batch):
         flare_daily_features = self.model_lstm_fism2_daily(batch['fism2_daily_stan_bands'])
@@ -269,11 +273,13 @@ class Fism2FlareDensityPredictor(nn.Module):
                  input_size_thermo,
                  input_size_fism2_flare,
                  output_size_fism2_flare=20,
+                 lstm_depth=2,
                  dropout_lstm=0.,
                  dropout_ffnn=0.):
         super().__init__()
-        self.model_lstm_fism2_flare=LSTMPredictor(input_size=input_size_fism2_flare, output_size=output_size_fism2_flare, dropout=dropout_lstm)
+        self.model_lstm_fism2_flare=LSTMPredictor(input_size=input_size_fism2_flare, output_size=output_size_fism2_flare, lstm_depth=lstm_depth, dropout=dropout_lstm)
         self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare, dropout=dropout_ffnn)
+        self.dropout=dropout_lstm
 
     def forward(self, batch):
         flare_features = self.model_lstm_fism2_flare(batch['fism2_daily_stan_bands'])

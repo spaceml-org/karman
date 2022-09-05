@@ -80,7 +80,9 @@ def run():
                                  'NoFism2FlareFeedForward',
                                  'NoFism2DailyFeedForward',
                                  'NoOmniFeedForward',
-                                 'NoFism2FlareAndDailyFeedForward'])
+                                 'NoFism2FlareAndDailyFeedForward',
+                                 'OneGiantFeedForward'
+                                 ])
     parser.add_argument('--dropout', default=0.0, type=float)
     parser.add_argument('--folds',
                         default='1',
@@ -150,6 +152,12 @@ def run():
                 dropout=opt.dropout,
                 hidden_size=opt.hidden_size,
                 out_features=opt.out_features).to(dtype=torch.float32)
+        elif opt.model == 'OneGiantFeedForward':
+            model =  OneGiantFeedForward(
+                dropout=opt.dropout,
+                hidden_size=opt.hidden_size,
+                out_features=opt.out_features).to(dtype=torch.float32)
+
 
         validation_step_loader = torch.utils.data.DataLoader(dataset,
                                                              batch_size=2,

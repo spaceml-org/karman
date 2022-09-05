@@ -340,3 +340,22 @@ class CNNDensityPredictor(nn.Module):
         ], dim=1)
         density = self.ffnn(concatenated_features)
         return density
+
+class OneGiantFeedForward(nn.Module):
+    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
+        super(OneGiantFeedForward, self).__init__()
+        self.dropout = dropout
+        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
+
+    def forward(self, x):
+        thermo_data = x['instantaneous_features']
+        omni_data = x['omni']
+        fism2_daily_data = x['fism2_daily_stan_bands']
+        fism2_flare_data = x['fism2_flare_stan_bands']
+        concatenated_data = torch.cat([
+            thermo_data,
+            omni_data,
+            fism2_daily_data,
+            fism2_flare_data
+        ], dim=1)
+        return self.regressor(concatenated_data)

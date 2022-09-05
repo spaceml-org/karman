@@ -91,8 +91,6 @@ class ThermosphericDensityDataset(Dataset):
         # experiments will be run on exactly the same data, regardless of the inputted lag.
         # This means the results from all experiments will be totally comparable as they
         # are on the same observation data.
-        self.min_date = pd.to_datetime('2004-02-01 00:00:00')
-        self.max_date = pd.to_datetime('2020-01-01 23:59:00')
         self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['all__dates_datetime__'] >= self.min_date]
         self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['all__dates_datetime__'] <= self.max_date]
 

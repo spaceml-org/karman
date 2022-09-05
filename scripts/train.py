@@ -166,7 +166,7 @@ def run():
                 input_size_fism2_flare=dataset.time_series_data['fism2_flare_stan_bands']['data_matrix'].shape[1],
                 output_size_fism2_flare=175,
                 dropout_lstm=0.,
-                dropout_fnn=0.
+                dropout_ffnn=0.
             )
 
 

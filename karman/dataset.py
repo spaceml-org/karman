@@ -223,6 +223,14 @@ class ThermosphericDensityDataset(Dataset):
             sample[data_name] = data['data_matrix'][lagged_index:(now_index+1), :].detach()
         return sample
 
+    def __getdate__(self, date):
+        sample = {}
+        for data_name, data in self.time_series_data.items():
+            now_index = self.date_to_index(date, data['date_start'], 60*data['resolution'])
+            lagged_index = self.date_to_index(date - pd.Timedelta(minutes=data['lag']), data['date_start'], 60*data['resolution'])
+            sample[data_name] = data['data_matrix'][lagged_index:(now_index+1), :].detach()
+        return sample
+
     def _set_indices(self, test_month_idx, validation_month_idx):
         """
         Works out which indices are in the training, validation and test sets.

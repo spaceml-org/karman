@@ -19,6 +19,7 @@ from pyfiglet import Figlet
 from termcolor import colored
 import copy
 from torch.utils.data import RandomSampler
+import pandas as pd
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 def validate_model(model, loader, loss_function, device):
@@ -130,6 +131,7 @@ def run():
     time_start=datetime.datetime.now()
 
     benchmark_results = []
+    test_fold_losses = []
 
     for fold in opt.folds.split(','):
         if opt.model == 'FullFeatureFeedForward':
@@ -212,7 +214,6 @@ def run():
         best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}_fold_{fold}")
         loss_function = nn.MSELoss()
         best_validation_loss = np.inf
-        test_fold_losses = []
         for epoch in range(opt.epochs):
             model.train(True)
             for i, batch in tqdm(enumerate(train_loader), total=len(train_loader), desc=f'Running Train epoch {epoch}'):

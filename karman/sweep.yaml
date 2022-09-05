@@ -1,37 +1,38 @@
 program: scripts/train.py
-method: bayes
+method: grid
 metric:
   name: best_validation_loss_fold_4
   goal: minimize
 parameters:
   learning_rate:
-    min: 0.00001
-    max: 0.001
-    distribution: log_uniform_values
+    values: [0.000840448675626038]
   folds:
-    values: ['4']
+    values: ['1,2,3,4,5,6']
   batch_size:
     values: [1024]
   epochs:
     values: [20]
   weight_decay:
-    min: 0.0000001
-    max: 0.0001
-    distribution: log_uniform_values
+    values: [1.3749735695005969e-08]
   out_features:
-    values: [25, 50, 75, 100, 125, 150]
+    values: [175]
   hidden_size:
-    values: [50, 100, 150, 200, 250, 300]
+    values: [500]
   num_workers:
-    values: [20]
-  train_subsample:
-    values: [5_000_000]
-  cyclical_features:
-    values: [true]
+    values: [15]
   run_benchmark:
-    values: [false]
+    values: [True]
   run_tests:
-    values: [false]
+    values: [True]
+  lag_fism2_minutes_flare_stan_bands:
+    values: [0, 480, 960, 1440, 1920, 2400, 2880]
+  lag_minutes_omni:
+    values: [2880]
+  model:
+    values: [NoFism2DailyFeedForward]
+  features_to_exclude_thermo:
+    values: ["all__dates_datetime__,tudelft_thermo__satellite__,tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3],NRLMSISE00__thermospheric_density__[kg/m**3],JB08__thermospheric_density__[kg/m**3],space_environment_technologies__f107_obs__,space_environment_technologies__f107_average__,space_environment_technologies__s107_obs__,space_environment_technologies__s107_average__,space_environment_technologies__m107_obs__,space_environment_technologies__m107_average__,space_environment_technologies__y107_obs__,space_environment_technologies__y107_average__"]
+
 command:
   - python
   - ${program}

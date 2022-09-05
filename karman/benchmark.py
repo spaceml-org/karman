@@ -6,8 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 import numpy as np
 import karman
-# from karman.nn import *
-from karman.models import *
+from karman.nn import *
 import os
 from torch.utils.data import Subset
 from torch import nn

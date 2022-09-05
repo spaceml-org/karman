@@ -46,18 +46,22 @@ class ThermosphericDensityDataset(Dataset):
         features_to_exclude_fism2_flare_stan_bands=['all__dates_datetime__'],
         features_to_exclude_fism2_daily_stan_bands=['all__dates_datetime__'],
         create_cyclical_features=True,
+        min_date=pd.to_datetime('2004-02-01 00:00:00'),
+        max_date=pd.to_datetime('2020-01-01 23:59:00') # Dont change these generally. We want them fixed for all training runs
     ):
         self.create_cyclical_features = create_cyclical_features
         self._directory = directory
+        self.min_date = min_date
+        self.max_date = max_date
         self.time_series_data = {}
 
         # Add time series data here.
         print("Loading Omni.")
         self._add_time_series_data('omni',
-                                   'data_omniweb_v1/omniweb_1min_data_2001_2022.h5',
-                                   lag_minutes_omni,
-                                   omni_resolution,
-                                   features_to_exclude_omni)
+                                       'data_omniweb_v1/omniweb_1min_data_2001_2022.h5',
+                                       lag_minutes_omni,
+                                       omni_resolution,
+                                       features_to_exclude_omni)
 
         print("Loading FISM2 Flare Stan bands.")
         self._add_time_series_data('fism2_flare_stan_bands',
@@ -91,7 +95,7 @@ class ThermosphericDensityDataset(Dataset):
         self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['all__dates_datetime__'] <= self.max_date]
         self.data_thermo['data'].reset_index(inplace=True)
 
-        self.data_thermo['dates'] = list(self.data_thermo['data']['all__dates_datetime__'])
+        self.data_thermo['dates'] = np.array(self.data_thermo['data']['all__dates_datetime__'])
         self.data_thermo['date_start'] = self.data_thermo['dates'][0]
 
         # This logic creates sin and cos versions of cyclical features to avoid hard boundaries in
@@ -170,7 +174,7 @@ class ThermosphericDensityDataset(Dataset):
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].drop(columns=excluded_features, axis=1)
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].replace([np.inf, -np.inf], None)
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].interpolate(method='pad')
-        self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
+        self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
         self.time_series_data[data_name]['date_start'] = min(self.time_series_data[data_name]['data'].index)
         self.time_series_data[data_name]['data_matrix'] = self.time_series_data[data_name]['data'].values
         # Some of the time series data is highly skewed, so much so even logging doesnt help

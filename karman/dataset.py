@@ -50,6 +50,7 @@ class ThermosphericDensityDataset(Dataset):
         max_date=pd.to_datetime('2020-01-01 23:59:00'), # Dont change these generally. We want them fixed for all training runs
         max_altitude=np.inf,
     ):
+        self.features_to_exclude_thermo = features_to_exclude_thermo
         self.create_cyclical_features = create_cyclical_features
         self._directory = directory
         self.min_date = min_date

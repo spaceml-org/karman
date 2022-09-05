@@ -93,6 +93,7 @@ def run():
     parser.add_argument('--train_subsample', default=None)
     parser.add_argument('--run_benchmark', default=True, type=bool)
     parser.add_argument('--run_tests', default=True, type=bool)
+    parser.add_argument('--max_altitude', default=600_000, type=float)
 
     opt = parser.parse_args()
     wandb.init(project='karman', config=vars(opt))
@@ -122,7 +123,8 @@ def run():
         features_to_exclude_omni=opt.features_to_exclude_omni.split(','),
         features_to_exclude_fism2_flare_stan_bands=opt.features_to_exclude_fism2_flare_stan_bands.split(','),
         features_to_exclude_fism2_daily_stan_bands=opt.features_to_exclude_fism2_daily_stan_bands.split(','),
-        create_cyclical_features=opt.cyclical_features
+        create_cyclical_features=opt.cyclical_features,
+        max_altitude=opt.max_altitude
     )
 
     time_start=datetime.datetime.now()

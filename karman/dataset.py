@@ -47,12 +47,14 @@ class ThermosphericDensityDataset(Dataset):
         features_to_exclude_fism2_daily_stan_bands=['all__dates_datetime__'],
         create_cyclical_features=True,
         min_date=pd.to_datetime('2004-02-01 00:00:00'),
-        max_date=pd.to_datetime('2020-01-01 23:59:00') # Dont change these generally. We want them fixed for all training runs
+        max_date=pd.to_datetime('2020-01-01 23:59:00'), # Dont change these generally. We want them fixed for all training runs
+        max_altitude=np.inf,
     ):
         self.create_cyclical_features = create_cyclical_features
         self._directory = directory
         self.min_date = min_date
         self.max_date = max_date
+        self.max_altitude = max_altitude
         self.time_series_data = {}
 
         # Add time series data here.
@@ -93,6 +95,11 @@ class ThermosphericDensityDataset(Dataset):
         self.max_date = pd.to_datetime('2020-01-01 23:59:00')
         self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['all__dates_datetime__'] >= self.min_date]
         self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['all__dates_datetime__'] <= self.max_date]
+
+        #Add constraints to the data here, e.g. altitude ranges
+        self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['tudelft_thermo__altitude__[m]'] <= self.max_altitude]
+
+
         self.data_thermo['data'].reset_index(inplace=True)
 
         self.data_thermo['dates'] = np.array(self.data_thermo['data']['all__dates_datetime__'])

@@ -22,7 +22,7 @@ class ThermosphericDensityDataset(Dataset):
         features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
                                     'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
                                     'NRLMSISE00__thermospheric_density__[kg/m**3]',
-                                    'JB08__thermospheric_density__[kg/m**3]', 'index'],
+                                    'JB08__thermospheric_density__[kg/m**3]'],
         features_to_exclude_omni=['all__dates_datetime__',
                                   'omniweb__id_for_imf_spacecraft__',
                                   'omniweb__id_for_sw_plasma_spacecraft__',
@@ -99,7 +99,8 @@ class ThermosphericDensityDataset(Dataset):
         self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['tudelft_thermo__altitude__[m]'] <= self.max_altitude]
 
 
-        self.data_thermo['data'].reset_index(inplace=True)
+        #Awful feature where reset_index creates a column called 'index'. drop=True gets rid of this
+        self.data_thermo['data'].reset_index(inplace=True, drop=True)
 
         self.data_thermo['dates'] = np.array(self.data_thermo['data']['all__dates_datetime__'])
         self.data_thermo['date_start'] = self.data_thermo['dates'][0]

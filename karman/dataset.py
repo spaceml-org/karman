@@ -22,7 +22,7 @@ class ThermosphericDensityDataset(Dataset):
         features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
                                     'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
                                     'NRLMSISE00__thermospheric_density__[kg/m**3]',
-                                    'JB08__thermospheric_density__[kg/m**3]'],
+                                    'JB08__thermospheric_density__[kg/m**3]', 'index'],
         features_to_exclude_omni=['all__dates_datetime__',
                                   'omniweb__id_for_imf_spacecraft__',
                                   'omniweb__id_for_sw_plasma_spacecraft__',
@@ -118,7 +118,7 @@ class ThermosphericDensityDataset(Dataset):
                 'tudelft_thermo__longitude__[deg]',
                 'tudelft_thermo__local_solar_time__[h]']
 
-            features_to_exclude_thermo = features_to_exclude_thermo + self.cyclical_features
+            self.features_to_exclude_thermo = features_to_exclude_thermo + self.cyclical_features
             for feature in self.cyclical_features:
                 # Sticking to the naming conventions here is very important.
                 unit = feature.split('__')[-1][1:-1]
@@ -132,6 +132,7 @@ class ThermosphericDensityDataset(Dataset):
                     self.data_thermo['data'][f'{feature}_sin'] = np.sin(self.data_thermo['data'][feature])
                     self.data_thermo['data'][f'{feature}_cos'] = np.cos(self.data_thermo['data'][feature])
 
+        self.used_thermo_features = self.data_thermo['data'].drop(columns=self.features_to_exclude_thermo).columns
         self.data_thermo['data_matrix'] = self.data_thermo['data'].drop(columns=features_to_exclude_thermo).values
         self.data_thermo['data_matrix'][np.isinf(self.data_thermo['data_matrix'])]=0.
         # Why min max here and Quantile later? Because I dont want

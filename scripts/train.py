@@ -275,9 +275,9 @@ def run():
     benchmark_results_std = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).std()
 
     for row in benchmark_results_mean.iterrows():
-        wandb.log({f"reported_test_mean_{row[1]['Metric Type']}_{row[1]['Condition']}": row[1]['Metric Value']})
+        wandb.log({f"reported_test_mean_{row[0][0]}_{row[0][1]}": row[1]['Metric Value']})
     for row in benchmark_results_std.iterrows():
-        wandb.log({f"reported_test_std_{row[1]['Metric Type']}_{row[1]['Condition']}": row[1]['Metric Value']})
+        wandb.log({f"reported_test_std_{row[0][0]}_{row[0][1]}": row[1]['Metric Value']})
 
     wandb.log({'reported_test_loss_mean': np.mean(test_fold_losses)})
     wandb.log({'reported_test_loss_std': np.std(test_fold_losses)})

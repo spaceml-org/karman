@@ -20,6 +20,7 @@ from termcolor import colored
 import copy
 from torch.utils.data import RandomSampler
 import pandas as pd
+import random
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 def validate_model(model, loader, loss_function, device):
@@ -41,7 +42,6 @@ def run():
     print(colored(f'Version {karman.__version__}\n','blue'))
 
     parser = argparse.ArgumentParser(description='Karman', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--seed', help='Random number seed', default=1, type=int)
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--output_directory', help='Output directory', default='output_directory')
@@ -96,6 +96,7 @@ def run():
     parser.add_argument('--run_tests', default=True, type=bool)
     parser.add_argument('--max_altitude', default=600_000, type=float)
     parser.add_argument('--lstm_depth', default=2, type=int)
+    parser.add_argument('--seeds', default=1, type=int)
 
     opt = parser.parse_args()
     wandb.init(project='karman', config=vars(opt))
@@ -132,157 +133,160 @@ def run():
     time_start=datetime.datetime.now()
 
     benchmark_results = []
-    test_fold_losses = []
+    test_seed_losses = []
 
     for fold in opt.folds.split(','):
-        if opt.model == 'FullFeatureFeedForward':
-            model = FullFeatureFeedForward(
-                dropout=opt.dropout,
-                hidden_size=opt.hidden_size,
-                out_features=opt.out_features).to(dtype=torch.float32)
-        elif opt.model == 'NoFism2FlareFeedForward':
-            model = NoFism2FlareFeedForward(
-                dropout=opt.dropout,
-                hidden_size=opt.hidden_size,
-                out_features=opt.out_features).to(dtype=torch.float32)
-        elif opt.model == 'NoFism2DailyFeedForward':
-            model = NoFism2DailyFeedForward(
-                dropout=opt.dropout,
-                hidden_size=opt.hidden_size,
-                out_features=opt.out_features).to(dtype=torch.float32)
-        elif opt.model == 'NoOmniFeedForward':
-            model = NoOmniFeedForward(
-                dropout=opt.dropout,
-                hidden_size=opt.hidden_size,
-                out_features=opt.out_features).to(dtype=torch.float32)
-        elif opt.model == 'NoFism2FlareAndDailyFeedForward':
-            model =  NoFism2FlareAndDailyFeedForward(
-                dropout=opt.dropout,
-                hidden_size=opt.hidden_size,
-                out_features=opt.out_features).to(dtype=torch.float32)
-        elif opt.model == 'OneGiantFeedForward':
-            model =  OneGiantFeedForward(
-                dropout=opt.dropout,
-                hidden_size=opt.hidden_size,
-                out_features=opt.out_features).to(dtype=torch.float32)
-        elif opt.model == 'Fism2FlareDensityPredictor':
-            model = Fism2FlareDensityPredictor(
-                input_size_thermo=dataset.data_thermo['data_matrix'].shape[1],
-                input_size_fism2_flare=dataset.time_series_data['fism2_flare_stan_bands']['data_matrix'].shape[1],
-                output_size_fism2_flare=opt.out_features,
-                lstm_depth=opt.lstm_depth,
-                dropout_lstm=opt.dropout,
-                dropout_ffnn=opt.dropout
-            )
+        benchmark_results = []
+        for seed in range(opt.seeds):
+            np.random.seed(seed)
+            torch.manual_seed(seed)
+            random.seed(seed)
+            if opt.model == 'FullFeatureFeedForward':
+                model = FullFeatureFeedForward(
+                    dropout=opt.dropout,
+                    hidden_size=opt.hidden_size,
+                    out_features=opt.out_features).to(dtype=torch.float32)
+            elif opt.model == 'NoFism2FlareFeedForward':
+                model = NoFism2FlareFeedForward(
+                    dropout=opt.dropout,
+                    hidden_size=opt.hidden_size,
+                    out_features=opt.out_features).to(dtype=torch.float32)
+            elif opt.model == 'NoFism2DailyFeedForward':
+                model = NoFism2DailyFeedForward(
+                    dropout=opt.dropout,
+                    hidden_size=opt.hidden_size,
+                    out_features=opt.out_features).to(dtype=torch.float32)
+            elif opt.model == 'NoOmniFeedForward':
+                model = NoOmniFeedForward(
+                    dropout=opt.dropout,
+                    hidden_size=opt.hidden_size,
+                    out_features=opt.out_features).to(dtype=torch.float32)
+            elif opt.model == 'NoFism2FlareAndDailyFeedForward':
+                model =  NoFism2FlareAndDailyFeedForward(
+                    dropout=opt.dropout,
+                    hidden_size=opt.hidden_size,
+                    out_features=opt.out_features).to(dtype=torch.float32)
+            elif opt.model == 'OneGiantFeedForward':
+                model =  OneGiantFeedForward(
+                    dropout=opt.dropout,
+                    hidden_size=opt.hidden_size,
+                    out_features=opt.out_features).to(dtype=torch.float32)
+            elif opt.model == 'Fism2FlareDensityPredictor':
+                model = Fism2FlareDensityPredictor(
+                    input_size_thermo=dataset.data_thermo['data_matrix'].shape[1],
+                    input_size_fism2_flare=dataset.time_series_data['fism2_flare_stan_bands']['data_matrix'].shape[1],
+                    output_size_fism2_flare=opt.out_features,
+                    lstm_depth=opt.lstm_depth,
+                    dropout_lstm=opt.dropout,
+                    dropout_ffnn=opt.dropout
+                )
 
 
-        validation_step_loader = torch.utils.data.DataLoader(dataset,
-                                                             batch_size=2,
-                                                             num_workers=0)
-        #Need to do this if using the LazyLinear Module (avoids having to hard code input layers to a linear layer)..sue me
-        model.forward(next(iter(validation_step_loader)))
+            validation_step_loader = torch.utils.data.DataLoader(dataset,
+                                                                batch_size=2,
+                                                                num_workers=0)
+            #Need to do this if using the LazyLinear Module (avoids having to hard code input layers to a linear layer)..sue me
+            model.forward(next(iter(validation_step_loader)))
 
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        print(f"Device is: {device}")
-        model.to(device).to(dtype=torch.float32)
+            print(f"Device is: {device}")
+            model.to(device).to(dtype=torch.float32)
 
-        optimizer=optim.Adam(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
+            optimizer=optim.Adam(model.parameters(), lr=opt.learning_rate, weight_decay=opt.weight_decay)
 
-        test_month_idx = 2 * (int(fold) - 1)
-        validation_month_idx = test_month_idx + 2
-        dataset._set_indices(test_month_idx=[test_month_idx], validation_month_idx=[validation_month_idx])
-        train_dataset = dataset.train_dataset()
-        if opt.train_subsample is not None:
-            train_sampler = RandomSampler(train_dataset, num_samples=int(opt.train_subsample))
-        else:
-            train_sampler = RandomSampler(train_dataset, num_samples=len(train_dataset))
-        train_loader = torch.utils.data.DataLoader(train_dataset,
-                                    batch_size=opt.batch_size,
-                                    pin_memory=True,
-                                    num_workers=opt.num_workers,
-                                    sampler=train_sampler,
-                                    drop_last=True)
-        validation_loader = torch.utils.data.DataLoader(dataset.validation_dataset(),
-                                                batch_size=opt.batch_size,
-                                                pin_memory=False,
-                                                num_workers=opt.num_workers,
-                                                drop_last=False)
-        test_loader = torch.utils.data.DataLoader(dataset.test_dataset(),
+            test_month_idx = 2 * (int(fold) - 1)
+            validation_month_idx = test_month_idx + 2
+            dataset._set_indices(test_month_idx=[test_month_idx], validation_month_idx=[validation_month_idx])
+            train_dataset = dataset.train_dataset()
+            if opt.train_subsample is not None:
+                train_sampler = RandomSampler(train_dataset, num_samples=int(opt.train_subsample))
+            else:
+                train_sampler = RandomSampler(train_dataset, num_samples=len(train_dataset))
+            train_loader = torch.utils.data.DataLoader(train_dataset,
                                         batch_size=opt.batch_size,
-                                        pin_memory=False,
+                                        pin_memory=True,
                                         num_workers=opt.num_workers,
-                                        drop_last=False)
-        best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}_fold_{fold}")
-        loss_function = nn.MSELoss()
-        best_validation_loss = np.inf
-        samples_trained = 0
-        for epoch in range(opt.epochs):
-            model.train(True)
-            for i, batch in tqdm(enumerate(train_loader), total=len(train_loader), desc=f'Running Train epoch {epoch}'):
-                [batch.__setitem__(key, batch[key].to(device).to(torch.float32)) for key in batch.keys()]
-                optimizer.zero_grad()
-                output = model(batch)
-                train_loss = loss_function(output, batch['target'].unsqueeze(1))
-                train_loss.backward()
-                optimizer.step()
-                wandb.log({f'train_loss_fold_{fold}': float(train_loss.detach().item())})
-                #So we can compare plots of different batch sizes
-                samples_trained += int(opt.batch_size)
-                wandb.log({'samples_trained': samples_trained})
+                                        sampler=train_sampler,
+                                        drop_last=True)
+            validation_loader = torch.utils.data.DataLoader(dataset.validation_dataset(),
+                                                    batch_size=opt.batch_size,
+                                                    pin_memory=False,
+                                                    num_workers=opt.num_workers,
+                                                    drop_last=False)
+            test_loader = torch.utils.data.DataLoader(dataset.test_dataset(),
+                                            batch_size=opt.batch_size,
+                                            pin_memory=False,
+                                            num_workers=opt.num_workers,
+                                            drop_last=False)
+            best_model_path=os.path.join(opt.output_directory,"best_model_"+opt.model+f"_{time_start}_fold_{fold}_seed_{seed}")
+            loss_function = nn.MSELoss()
+            best_validation_loss = np.inf
+            samples_trained = 0
+            for epoch in range(opt.epochs):
+                model.train(True)
+                for i, batch in tqdm(enumerate(train_loader), total=len(train_loader), desc=f'Running Train epoch {epoch}'):
+                    [batch.__setitem__(key, batch[key].to(device).to(torch.float32)) for key in batch.keys()]
+                    optimizer.zero_grad()
+                    output = model(batch)
+                    train_loss = loss_function(output, batch['target'].unsqueeze(1))
+                    train_loss.backward()
+                    optimizer.step()
+                    wandb.log({f'train_loss_fold_{fold}_seed_{seed}': float(train_loss.detach().item())})
+                    #So we can compare plots of different batch sizes
+                    samples_trained += int(opt.batch_size)
+                    wandb.log({'samples_trained': samples_trained})
 
-            if epoch % opt.epochs_per_validation == 0:
-                print("Validating\n")
-                validation_loss = validate_model(model, validation_loader, loss_function, device)
-                wandb.log({f'validation_loss_fold_{fold}': validation_loss})
-                if opt.run_tests:
-                    print("Testing\n")
-                    test_loss = validate_model(model, test_loader, loss_function, device)
-                    wandb.log({f'test_loss_fold_{fold}': test_loss})
+                if epoch % opt.epochs_per_validation == 0:
+                    print("Validating\n")
+                    validation_loss = validate_model(model, validation_loader, loss_function, device)
+                    wandb.log({f'validation_loss_fold_{fold}_seed_{seed}': validation_loss})
+                    if opt.run_tests:
+                        print("Testing\n")
+                        test_loss = validate_model(model, test_loader, loss_function, device)
+                        wandb.log({f'test_loss_fold_{fold}_seed_{seed}': test_loss})
 
-                if validation_loss < best_validation_loss:
-                    best_validation_loss = validation_loss
-                    wandb.log({f'best_validation_loss_fold_{fold}': best_validation_loss})
-                    reported_test_loss = test_loss
-                    print(f"Saving best model to: {best_model_path} \n")
-                    torch.save({'state_dict': model.state_dict(),
-                                'opt': opt}, best_model_path)
-                    wandb.log({f'reported_test_loss_fold_{fold}': test_loss})
-                    best_state_dict = copy.deepcopy(model.state_dict())
+                    if validation_loss < best_validation_loss:
+                        best_validation_loss = validation_loss
+                        wandb.log({f'best_validation_loss_fold_{fold}_seed_{seed}': best_validation_loss})
+                        reported_test_loss = test_loss
+                        print(f"Saving best model to: {best_model_path} \n")
+                        torch.save({'state_dict': model.state_dict(),
+                                    'opt': opt}, best_model_path)
+                        wandb.log({f'reported_test_loss_fold_{fold}_seed_{seed}': test_loss})
+                        best_state_dict = copy.deepcopy(model.state_dict())
 
-        test_fold_losses.append(reported_test_loss)
+            test_seed_losses.append(reported_test_loss)
 
-        # Run benchmark at the end of fold
-        if opt.run_benchmark:
-            print('Running benchmarks')
-            model.load_state_dict(best_state_dict)
-            fold_model_name = f'{opt.run_name}_fold_{fold}'
-            fold_benchmark_results = Benchmark(batch_size=opt.batch_size,
-                                        num_workers=opt.num_workers,
-                                        data_directory=opt.data_directory,
-                                        output_directory=opt.output_directory,
-                                        model_name=fold_model_name).evaluate_model(dataset, model)
-            # wandb_table = wandb.Table(dataframe=benchmark_results)
-            # wandb.log({f"model_results_fold_{fold}": wandb_table})
+            # Run benchmark at the end of fold
+            if opt.run_benchmark:
+                print('Running benchmarks')
+                model.load_state_dict(best_state_dict)
+                seed_model_name = f'{opt.run_name}_fold_{fold}_seed_{seed}'
+                seed_benchmark_results = Benchmark(batch_size=opt.batch_size,
+                                            num_workers=opt.num_workers,
+                                            data_directory=opt.data_directory,
+                                            output_directory=opt.output_directory,
+                                            model_name=fold_model_name).evaluate_model(dataset, model)
 
-            for row in fold_benchmark_results.iterrows():
-                if row[1]['Model'] == fold_model_name:
-                    wandb.log({f"reported_test_fold_{fold}_{row[1]['Metric Type']}_{row[1]['Condition']}": row[1]['Metric Value']})
-            #Ignore NRLMSISE and JB08 entries
-            benchmark_results.append(fold_benchmark_results[fold_benchmark_results['Model'] == fold_model_name])
+                for row in seed_benchmark_results.iterrows():
+                    if row[1]['Model'] == model_name:
+                        wandb.log({f"reported_test_fold_{fold}_seed_{seed}_{row[1]['Metric Type']}_{row[1]['Condition']}": row[1]['Metric Value']})
+                #Ignore NRLMSISE and JB08 entries
+                benchmark_results.append(seed_benchmark_results[seed_benchmark_results['Model'] == seed_model_name])
 
-    benchmark_results = pd.concat(benchmark_results, ignore_index=True)
-    #Skipna is True because sometimes the categories might be empty, like in sever storms.
-    benchmark_results_mean = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).mean()
-    benchmark_results_std = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).std()
+        benchmark_results = pd.concat(benchmark_results, ignore_index=True)
+        #Skipna is True because sometimes the categories might be empty, like in severe storms.
+        benchmark_results_mean = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).mean()
+        benchmark_results_std = benchmark_results.dropna().groupby(['Metric Type', 'Condition']).std()
 
-    for row in benchmark_results_mean.iterrows():
-        wandb.log({f"reported_test_mean_{row[0][0]}_{row[0][1]}": row[1]['Metric Value']})
-    for row in benchmark_results_std.iterrows():
-        wandb.log({f"reported_test_std_{row[0][0]}_{row[0][1]}": row[1]['Metric Value']})
+        for row in benchmark_results_mean.iterrows():
+            wandb.log({f"reported_test_fold_{fold}_mean_{row[0][0]}_{row[0][1]}": row[1]['Metric Value']})
+        for row in benchmark_results_std.iterrows():
+            wandb.log({f"reported_test_fold_{fold}_std_{row[0][0]}_{row[0][1]}": row[1]['Metric Value']})
 
-    wandb.log({'reported_test_loss_mean': np.mean(test_fold_losses)})
-    wandb.log({'reported_test_loss_std': np.std(test_fold_losses)})
+        wandb.log({f'reported_test_loss_fold_{fold}_mean': np.mean(test_seed_losses)})
+        wandb.log({f'reported_test_loss_fold_{fold}_std': np.std(test_seed_losses)})
 
 
 if __name__ == "__main__":

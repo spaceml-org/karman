@@ -180,6 +180,12 @@ class ThermosphericDensityDataset(Dataset):
         self.time_series_data[data_name]['data'].index = pd.to_datetime(self.time_series_data[data_name]['data']['all__dates_datetime__'])
         self.time_series_data[data_name]['data'].sort_index(inplace=True)
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].drop(columns=excluded_features, axis=1)
+        # This is to remove significant outliers, such as the fism2 flare data which has 10^45 photons at one point. Regardless
+        # of whther this is true or not, it severely affects the distribution.
+        for column in self.time_series_data[data_name]['data'].columns:
+            quantile = self.time_series_data[data_name]['data'][column].quantile(0.998)
+            more_than = self.time_series_data[data_name]['data'][column] >= quantile
+            self.time_series_data[data_name]['data'][column][more_than] = None
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].replace([np.inf, -np.inf], None)
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].interpolate(method='pad')
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()

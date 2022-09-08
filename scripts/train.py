@@ -136,8 +136,10 @@ def run():
     test_seed_losses = []
 
     for fold in opt.folds.split(','):
+        print(f"Running fold {fold}")
         benchmark_results = []
         for seed in range(opt.seeds):
+            print(f"Running seed: {seed}")
             np.random.seed(seed)
             torch.manual_seed(seed)
             random.seed(seed)

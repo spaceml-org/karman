@@ -269,10 +269,10 @@ def run():
                                             num_workers=opt.num_workers,
                                             data_directory=opt.data_directory,
                                             output_directory=opt.output_directory,
-                                            model_name=fold_model_name).evaluate_model(dataset, model)
+                                            model_name=seed_model_name).evaluate_model(dataset, model)
 
                 for row in seed_benchmark_results.iterrows():
-                    if row[1]['Model'] == model_name:
+                    if row[1]['Model'] == seed_model_name:
                         wandb.log({f"reported_test_fold_{fold}_seed_{seed}_{row[1]['Metric Type']}_{row[1]['Condition']}": row[1]['Metric Value']})
                 #Ignore NRLMSISE and JB08 entries
                 benchmark_results.append(seed_benchmark_results[seed_benchmark_results['Model'] == seed_model_name])

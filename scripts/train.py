@@ -6,7 +6,7 @@ import time
 
 import datetime
 import karman
-from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward, NoFism2DailyFeedForward, NoOmniFeedForward, NoFism2FlareAndDailyFeedForward, Fism2FlareDensityPredictor
+from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward, NoFism2DailyFeedForward, NoOmniFeedForward, NoFism2FlareAndDailyFeedForward, Fism2FlareDensityPredictor, NoFism2FlareAndDailyAndOmniFeedForward
 import numpy as np
 import torch
 from torch import optim
@@ -83,7 +83,8 @@ def run():
                                  'NoOmniFeedForward',
                                  'NoFism2FlareAndDailyFeedForward',
                                  'OneGiantFeedForward',
-                                 'Fism2FlareDensityPredictor'
+                                 'Fism2FlareDensityPredictor',
+                                 'NoFism2FlareAndDailyAndOmniFeedForward'
                                  ])
     parser.add_argument('--dropout', default=0.0, type=float)
     parser.add_argument('--folds',
@@ -130,7 +131,7 @@ def run():
         max_altitude=opt.max_altitude
     )
 
-    time_start=datetime.datetime.now()
+    ti.datetime.now()
 
     benchmark_results = []
     test_seed_losses = []
@@ -168,6 +169,11 @@ def run():
                     dropout=opt.dropout,
                     hidden_size=opt.hidden_size,
                     out_features=opt.out_features).to(dtype=torch.float32)
+            elif opt.model == 'NoFism2FlareAndDailyAndOmniFeedForward':
+                model = NoFism2FlareAndDailyAndOmniFeedForward(
+                     dropout=opt.dropout,
+                     hidden_size=opt.hidden_size,
+                     out_features=opt.out_features).to(dtype=torch.float32)
             elif opt.model == 'OneGiantFeedForward':
                 model =  OneGiantFeedForward(
                     dropout=opt.dropout,

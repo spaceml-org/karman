@@ -131,7 +131,7 @@ def run():
         max_altitude=opt.max_altitude
     )
 
-    ti.datetime.now()
+    #ti.datetime.now()
 
     benchmark_results = []
     test_seed_losses = []

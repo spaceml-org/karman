@@ -3,7 +3,7 @@
 ## Download and store data
 
 ### Download data
-to download data, run:
+to download data (prepared via an ad-hoc package: https://github.com/spaceml-org/2022-solar-drag-datasets), run:
 ```
 gsutil -m cp -r gs://2022-nasa-solar-drag-benchmarking-landing/LISIRD_solar_irradiance_data/processed/fism2_flare_v1/downsampled/10min/* data_directory/
 

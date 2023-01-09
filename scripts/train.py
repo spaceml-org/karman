@@ -6,8 +6,7 @@ import time
 
 import datetime
 import karman
-from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward, NoFism2DailyFeedForward, NoOmniFeedForward, NoFism2FlareAndDailyFeedForward, Fism2FlareDensityPredictor, NoFism2FlareAndDailyAndOmniFeedForward
-from karman.nn import SimpleNN
+from karman.nn import SimpleNN, AddOmni
 import numpy as np
 import torch
 from torch import optim
@@ -81,13 +80,7 @@ def run():
     parser.add_argument('--cyclical_features', default=True, type=bool)
     parser.add_argument('--model',
                         default='FullFeatureFeedForward',
-                        choices=['FullFeatureFeedForward',
-                                 'NoFism2FlareFeedForward',
-                                 'NoFism2DailyFeedForward',
-                                 'NoOmniFeedForward',
-                                 'NoFism2FlareAndDailyFeedForward',
-                                 'Fism2FlareDensityPredictor',
-                                 'NoFism2FlareAndDailyAndOmniFeedForward',
+                        choices=['AddOmni',
                                  'SimpleNN'
                                  ])
     parser.add_argument('--dropout', default=0.0, type=float)
@@ -154,46 +147,10 @@ def run():
                 model = SimpleNN(
                     hidden_size=opt.hidden_size,
                     out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'FullFeatureFeedForward':
-                model = FullFeatureFeedForward(
-                    dropout=opt.dropout,
+            elif opt.model == 'AddOmni':
+                model = AddOmni(
                     hidden_size=opt.hidden_size,
                     out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2FlareFeedForward':
-                model = NoFism2FlareFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2DailyFeedForward':
-                model = NoFism2DailyFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoOmniFeedForward':
-                model = NoOmniFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2FlareAndDailyFeedForward':
-                model =  NoFism2FlareAndDailyFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2FlareAndDailyAndOmniFeedForward':
-                model = NoFism2FlareAndDailyAndOmniFeedForward(
-                     dropout=opt.dropout,
-                     hidden_size=opt.hidden_size,
-                     out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'Fism2FlareDensityPredictor':
-                model = Fism2FlareDensityPredictor(
-                    input_size_thermo=dataset.data_thermo['data_matrix'].shape[1],
-                    input_size_fism2_flare=dataset.time_series_data['fism2_flare_stan_bands']['data_matrix'].shape[1],
-                    output_size_fism2_flare=opt.out_features,
-                    lstm_depth=opt.lstm_depth,
-                    dropout_lstm=opt.dropout,
-                    dropout_ffnn=opt.dropout
-                )
-
 
             validation_step_loader = torch.utils.data.DataLoader(dataset,
                                                                 batch_size=2,

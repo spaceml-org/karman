@@ -342,3 +342,22 @@ class SimpleNN(nn.Module):
 
     def forward(self, x):
         return self.regressor(x['instantaneous_features'])
+
+
+class AddOmni(nn.Module):
+    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
+        super(AddOmni, self).__init__()
+        self.dropout = dropout
+        self.name = 'Model that combines instantaneous features and OMNI data'
+        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
+        self.fc_omni = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
+        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
+
+    def forward(self, x):
+        thermo_features = self.fc_thermo(x['instantaneous_features'])
+        omni_features = self.fc_omni(x['omni'])
+        concatenated_features = torch.cat([
+            thermo_features,
+            omni_features
+        ], dim=1)
+        return self.regressor(concatenated_features)

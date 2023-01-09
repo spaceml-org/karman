@@ -38,6 +38,7 @@ class Benchmark():
         ]
         self.ap_column = 'celestrack__ap_h_0__'
         # Numbers are put in to preserve alphabetical order.
+
         self.storm_thresholds = {
             '1. (0-15) Quiet': 15.0,
             '2. (15-30) Mild': 30.0,
@@ -239,22 +240,23 @@ if __name__ == '__main__':
 
     print('Loading Data')
     model_opt=torch.load(model_path)['opt']
+    print(model_opt)
+    # import pdb; pdb.set_trace()
 
     dataset=karman.ThermosphericDensityDataset(
-        directory=model_opt.data_directory,
-        lag_minutes_omni=model_opt.lag_minutes_omni,
-        lag_minutes_fism2_flare_stan_bands=model_opt.lag_fism2_minutes_flare_stan_bands,
-        lag_minutes_fism2_daily_stan_bands=model_opt.lag_fism2_minutes_daily_stan_bands,
-        omni_resolution=model_opt.omni_resolution,
-        fism2_flare_stan_bands_resolution=model_opt.fism2_flare_stan_bands_resolution,
-        fism2_daily_stan_bands_resolution=model_opt.fism2_daily_stan_bands_resolution,
+        directory=opt.data_directory,
+        # lag_minutes_omni=model_opt.lag_minutes_omni,
+        # lag_minutes_fism2_flare_stan_bands=model_opt.lag_fism2_minutes_flare_stan_bands,
+        # lag_minutes_fism2_daily_stan_bands=model_opt.lag_fism2_minutes_daily_stan_bands,
+        # omni_resolution=model_opt.omniweb_downsampling_ratio,
+        # fism2_flare_stan_bands_resolution=model_opt.fism2_flare_stan_bands_resolution,
+        # fism2_daily_stan_bands_resolution=model_opt.fism2_daily_stan_bands_resolution,
         features_to_exclude_thermo=model_opt.features_to_exclude_thermo,
-        features_to_exclude_omni=model_opt.features_to_exclude_omni,
-        features_to_exclude_fism2_flare_stan_bands=model_opt.features_to_exclude_fism2_flare_stan_bands,
-        features_to_exclude_fism2_daily_stan_bands=model_opt.features_to_exclude_fism2_daily_stan_bands,
-        create_cyclical_features=model_opt.cyclical_features,
-        test_month_idx=[int(i) for i in model_opt.test_month_idx],
-        validation_month_idx=[int(i) for i in model_opt.validation_month_idx],
+        # features_to_exclude_omni=model_opt.features_to_exclude_omni.split(','),
+        # features_to_exclude_fism2_flare_stan_bands=model_opt.features_to_exclude_fism2_flare_stan_bands.split(','),
+        # features_to_exclude_fism2_daily_stan_bands=model_opt.features_to_exclude_fism2_daily_stan_bands.split(','),
+        create_cyclical_features=True,
+        # max_altitude=model_opt.max_altitude,
     )
 
     print('Loading Model')
@@ -281,10 +283,6 @@ if __name__ == '__main__':
                                                         drop_last=True)
     model.forward(next(iter(dummy_loader)))
     model.to(device)
-
-    # if torch.cuda.device_count()>1:
-    #     print(f"Parallelizing the model on {torch.cuda.device_count()} GPUs")
-    #     model=nn.DataParallel(model)
 
     benchmark = Benchmark(
         batch_size=opt.batch_size,

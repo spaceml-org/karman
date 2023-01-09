@@ -49,6 +49,9 @@ class ThermosphericDensityDataset(Dataset):
         min_date=pd.to_datetime('2004-02-01 00:00:00'),
         max_date=pd.to_datetime('2020-01-01 23:59:00'), # Dont change these generally. We want them fixed for all training runs
         max_altitude=np.inf,
+        include_omni=False,
+        include_daily_stan_bands=False,
+        include_flare_stan_bands=False
     ):
         self.features_to_exclude_thermo = features_to_exclude_thermo
         self.create_cyclical_features = create_cyclical_features
@@ -57,28 +60,34 @@ class ThermosphericDensityDataset(Dataset):
         self.max_date = max_date
         self.max_altitude = max_altitude
         self.time_series_data = {}
+        self.include_omni = include_omni
+        self.include_daily_stan_bands = include_daily_stan_bands
+        self.include_flare_stan_bands = include_flare_stan_bands
 
         # Add time series data here.
-        print("Loading Omni.")
-        self._add_time_series_data('omni',
-                                       'data_omniweb_v1/omniweb_1min_data_2001_2022.h5',
-                                       lag_minutes_omni,
-                                       omni_resolution,
-                                       features_to_exclude_omni)
+        if self.include_omni:
+            print("Loading Omni.")
+            self._add_time_series_data('omni',
+                                        'data_omniweb_v1/omniweb_1min_data_2001_2022.h5',
+                                        lag_minutes_omni,
+                                        omni_resolution,
+                                        features_to_exclude_omni)
 
-        print("Loading FISM2 Flare Stan bands.")
-        self._add_time_series_data('fism2_flare_stan_bands',
-                                   'fism2_flare_stan_bands.h5',
-                                   lag_minutes_fism2_flare_stan_bands,
-                                   fism2_flare_stan_bands_resolution,
-                                   features_to_exclude_fism2_flare_stan_bands)
+        if self.include_flare_stan_bands:
+            print("Loading FISM2 Flare Stan bands.")
+            self._add_time_series_data('fism2_flare_stan_bands',
+                                    'fism2_flare_stan_bands.h5',
+                                    lag_minutes_fism2_flare_stan_bands,
+                                    fism2_flare_stan_bands_resolution,
+                                    features_to_exclude_fism2_flare_stan_bands)
 
-        print("Loading FISM2 Daily Stan bands.")
-        self._add_time_series_data('fism2_daily_stan_bands',
-                                   'fism2_daily_stan_bands.h5',
-                                   lag_minutes_fism2_daily_stan_bands,
-                                   fism2_daily_stan_bands_resolution,
-                                   features_to_exclude_fism2_daily_stan_bands)
+        if self.include_daily_stan_bands:
+            print("Loading FISM2 Daily Stan bands.")
+            self._add_time_series_data('fism2_daily_stan_bands',
+                                    'fism2_daily_stan_bands.h5',
+                                    lag_minutes_fism2_daily_stan_bands,
+                                    fism2_daily_stan_bands_resolution,
+                                    features_to_exclude_fism2_daily_stan_bands)
 
         print('Creating thermospheric density dataset')
         self.data_thermo = {}
@@ -118,7 +127,8 @@ class ThermosphericDensityDataset(Dataset):
                 'all__sidereal_time__[rad]',
                 'tudelft_thermo__longitude__[deg]',
                 'tudelft_thermo__local_solar_time__[h]']
-
+            print(features_to_exclude_thermo)
+            print(self.cyclical_features)
             features_to_exclude_thermo = features_to_exclude_thermo + self.cyclical_features
             for feature in self.cyclical_features:
                 # Sticking to the naming conventions here is very important.

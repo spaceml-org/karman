@@ -6,6 +6,7 @@ import time
 
 import datetime
 import karman
+from karman import Benchmark
 from karman.nn import SimpleNN, AddOmni
 import numpy as np
 import torch

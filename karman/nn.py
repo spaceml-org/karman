@@ -345,12 +345,11 @@ class SimpleNN(nn.Module):
 
 
 class AddOmni(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
+    def __init__(self, hidden_size=200, out_features=50):
         super(AddOmni, self).__init__()
-        self.dropout = dropout
         self.name = 'Model that combines instantaneous features and OMNI data'
-        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_omni = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
+        self.fc_thermo = FeedForward(hidden_size=hidden_size, out_features=out_features)
+        self.fc_omni = FeedForward(hidden_size=hidden_size, out_features=out_features)
         self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
 
     def forward(self, x):

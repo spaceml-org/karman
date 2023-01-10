@@ -310,5 +310,3 @@ class ThermosphericDensityDataset(Dataset):
 
     def test_dataset(self):
         return Subset(self, self.test_indices)
-
-    def set_scaler_thermo(self, scaler):

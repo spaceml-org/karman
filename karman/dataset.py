@@ -51,7 +51,8 @@ class ThermosphericDensityDataset(Dataset):
         max_altitude=np.inf,
         include_omni=False,
         include_daily_stan_bands=False,
-        include_flare_stan_bands=False
+        include_flare_stan_bands=False,
+        thermo_scaler=None,
     ):
         self.features_to_exclude_thermo = features_to_exclude_thermo
         self.create_cyclical_features = create_cyclical_features
@@ -63,6 +64,7 @@ class ThermosphericDensityDataset(Dataset):
         self.include_omni = include_omni
         self.include_daily_stan_bands = include_daily_stan_bands
         self.include_flare_stan_bands = include_flare_stan_bands
+        self.thermo_scaler = thermo_scaler
 
         # Add time series data here.
         if self.include_omni:
@@ -147,10 +149,12 @@ class ThermosphericDensityDataset(Dataset):
         self.data_thermo['data_matrix'][np.isinf(self.data_thermo['data_matrix'])]=0.
         # Why min max here and Quantile later? Because I dont want
         # to normalize cyclical features- they can stay as nice sinusoids
-        scaler = MinMaxScaler()
-        self.data_thermo['data_matrix'] = scaler.fit_transform(self.data_thermo['data_matrix']).astype(np.float32)
+        if self.thermo_scaler is None:
+            self.thermo_scaler = MinMaxScaler()
+
+        self.data_thermo['data_matrix'] = self.thermo_scaler.fit_transform(self.data_thermo['data_matrix']).astype(np.float32)
         self.data_thermo['data_matrix']  = torch.tensor(self.data_thermo['data_matrix'] ).detach()
-        self.data_thermo['scaler'] = scaler
+        self.data_thermo['scaler'] = self.thermo_scaler
 
         # Normalize the thermospheric density.
         self.thermospheric_density = self.data_thermo['data']['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].values
@@ -306,3 +310,5 @@ class ThermosphericDensityDataset(Dataset):
 
     def test_dataset(self):
         return Subset(self, self.test_indices)
+
+    def set_scaler_thermo(self, scaler):

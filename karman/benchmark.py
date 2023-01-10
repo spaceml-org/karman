@@ -157,13 +157,8 @@ class Benchmark():
             model.train(True)
             for batch in tqdm(loader):
                 [batch.__setitem__(key, batch[key].to(self.device)) for key in batch.keys()]
-                if model.dropout == 0.0:
-                    times_to_run = 1
-                else:
-                    times_to_run = self.model_runs
                 dropout_predictions = []
-                for _ in range(times_to_run):
-                    dropout_predictions.append(model.forward(batch))
+                dropout_predictions.append(model.forward(batch))
                 dropout_predictions = torch.stack(dropout_predictions, dim=1)
                 targets.append(batch['target'])
                 predictions.append(torch.mean(dropout_predictions, dim=1))

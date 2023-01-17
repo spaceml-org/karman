@@ -77,15 +77,13 @@ class NoFism2FlareAndDailyFeedForward(nn.Module):
 
 class NoFism2FlareAndDailyAndOmniFeedForward(nn.Module):
     def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(NoFism2FlareAndDailyFeedForward, self).__init__()
+        super(NoFism2FlareAndDailyAndOmniFeedForward, self).__init__()
         self.dropout = dropout
         self.name = 'No FISM2 Flare, Daily and No Omni Feed Forward'
-        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
         self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
 
     def forward(self, x):
-        thermo_features = self.fc_thermo(x['instantaneous_features'])
-        return self.regressor(thermo_features)
+        return self.regressor(x['instantaneous_features'])
 
 
 class NoFism2FlareFeedForward(nn.Module):
@@ -336,45 +334,29 @@ class FullFeatureDensityPredictor(nn.Module):
         return density
 
 
-class CNNDensityPredictor(nn.Module):
-    def __init__(self,
-                 input_size_thermo,
-                 cnn_output_size):
-        super().__init__()
-        self.fism2_flare_cnn=WindowCNN(cnn_output_size)
-        self.fism2_daily_cnn=WindowCNN(cnn_output_size)
-        self.omni_cnn=WindowCNN(cnn_output_size)
-        self.ffnn=FFNN(num_features=input_size_thermo+3*cnn_output_size)
-
-    def forward(self, batch):
-        flare_features = self.fism2_flare_cnn(batch['fism2_flare_stan_bands'])
-        omni_features = self.omni_cnn(batch['omni'])
-        flare_daily_features = self.fism2_daily_cnn(batch['fism2_daily_stan_bands'])
-
-        concatenated_features = torch.cat([
-            batch['instantaneous_features'],
-            flare_features,
-            flare_daily_features,
-            omni_features
-        ], dim=1)
-        density = self.ffnn(concatenated_features)
-        return density
-
-class OneGiantFeedForward(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(OneGiantFeedForward, self).__init__()
-        self.dropout = dropout
+class SimpleNN(nn.Module):
+    def __init__(self, hidden_size=200, out_features=50):
+        super(SimpleNN, self).__init__()
+        self.name = 'Simple Linear Network'
         self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
 
     def forward(self, x):
-        thermo_data = x['instantaneous_features']
-        omni_data = x['omni']
-        fism2_daily_data = x['fism2_daily_stan_bands']
-        fism2_flare_data = x['fism2_flare_stan_bands']
-        concatenated_data = torch.cat([
-            thermo_data,
-            omni_data,
-            fism2_daily_data,
-            fism2_flare_data
+        return self.regressor(x['instantaneous_features'])
+
+
+class AddOmni(nn.Module):
+    def __init__(self, hidden_size=200, out_features=50):
+        super(AddOmni, self).__init__()
+        self.name = 'Model that combines instantaneous features and OMNI data'
+        self.fc_thermo = FeedForward(hidden_size=hidden_size, out_features=out_features)
+        self.fc_omni = FeedForward(hidden_size=hidden_size, out_features=out_features)
+        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
+
+    def forward(self, x):
+        thermo_features = self.fc_thermo(x['instantaneous_features'])
+        omni_features = self.fc_omni(x['omni'])
+        concatenated_features = torch.cat([
+            thermo_features,
+            omni_features
         ], dim=1)
-        return self.regressor(concatenated_data)
+        return self.regressor(concatenated_features)

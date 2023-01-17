@@ -143,5 +143,6 @@ cython_debug/
 
 *csv
 *gif
+keys.json
 wandb
 data_directory/*

@@ -6,7 +6,8 @@ import time
 
 import datetime
 import karman
-from karman import FullFeatureFeedForward, Benchmark, NoFism2FlareFeedForward, NoFism2DailyFeedForward, NoOmniFeedForward, NoFism2FlareAndDailyFeedForward, Fism2FlareDensityPredictor, NoFism2FlareAndDailyAndOmniFeedForward
+from karman import Benchmark
+from karman.nn import SimpleNN, AddOmni
 import numpy as np
 import torch
 from torch import optim
@@ -44,7 +45,7 @@ def run():
     parser = argparse.ArgumentParser(description='Karman', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--num_workers', default=0, type=int)
-    parser.add_argument('--output_directory', help='Output directory', default='output_directory')
+    parser.add_argument('--output_directory', help='Output directory', default='output_directory',required=True)
     parser.add_argument('--epochs', '-n', help='Number of epochs', default=10, type=int)
     parser.add_argument('--epochs_per_validation', default=1, type=int)
     parser.add_argument('--data_directory', default='/home/jupyter/karman-project/data_directory', type=str)
@@ -73,18 +74,15 @@ def run():
                         default=1440, type=int)
     parser.add_argument('--lag_fism2_minutes_flare_stan_bands', default=6*60, type=int)
     parser.add_argument('--lag_fism2_minutes_daily_stan_bands', default=1440, type=int)
+    parser.add_argument('--include_omni', default=False, type=bool)
+    parser.add_argument('--include_daily_stan_bands', default=False, type=bool)
+    parser.add_argument('--include_flare_stan_bands', default=False, type=bool)
     parser.add_argument('--run_name', default='', help='Run name to be stored in wandb')
     parser.add_argument('--cyclical_features', default=True, type=bool)
     parser.add_argument('--model',
                         default='FullFeatureFeedForward',
-                        choices=['FullFeatureFeedForward',
-                                 'NoFism2FlareFeedForward',
-                                 'NoFism2DailyFeedForward',
-                                 'NoOmniFeedForward',
-                                 'NoFism2FlareAndDailyFeedForward',
-                                 'OneGiantFeedForward',
-                                 'Fism2FlareDensityPredictor',
-                                 'NoFism2FlareAndDailyAndOmniFeedForward'
+                        choices=['AddOmni',
+                                 'SimpleNN'
                                  ])
     parser.add_argument('--dropout', default=0.0, type=float)
     parser.add_argument('--folds',
@@ -100,7 +98,8 @@ def run():
     parser.add_argument('--seeds', default=1, type=int)
 
     opt = parser.parse_args()
-    wandb.init(project='karman', config=vars(opt))
+    wandb.init(project='karman-project', config=vars(opt), entity='eddyb92')
+    # wandb.init(mode="disabled")
     if opt.run_name != '':
         wandb.run.name = opt.run_name
         wandb.run.save()
@@ -127,11 +126,12 @@ def run():
         features_to_exclude_omni=opt.features_to_exclude_omni.split(','),
         features_to_exclude_fism2_flare_stan_bands=opt.features_to_exclude_fism2_flare_stan_bands.split(','),
         features_to_exclude_fism2_daily_stan_bands=opt.features_to_exclude_fism2_daily_stan_bands.split(','),
+        include_omni=opt.include_omni,
+        include_daily_stan_bands=opt.include_daily_stan_bands,
+        include_flare_stan_bands=opt.include_flare_stan_bands,
         create_cyclical_features=opt.cyclical_features,
         max_altitude=opt.max_altitude
     )
-
-    ti.datetime.now()
 
     benchmark_results = []
     test_seed_losses = []
@@ -144,51 +144,14 @@ def run():
             np.random.seed(seed)
             torch.manual_seed(seed)
             random.seed(seed)
-            if opt.model == 'FullFeatureFeedForward':
-                model = FullFeatureFeedForward(
-                    dropout=opt.dropout,
+            if opt.model == 'SimpleNN':
+                model = SimpleNN(
                     hidden_size=opt.hidden_size,
                     out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2FlareFeedForward':
-                model = NoFism2FlareFeedForward(
-                    dropout=opt.dropout,
+            elif opt.model == 'AddOmni':
+                model = AddOmni(
                     hidden_size=opt.hidden_size,
                     out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2DailyFeedForward':
-                model = NoFism2DailyFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoOmniFeedForward':
-                model = NoOmniFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2FlareAndDailyFeedForward':
-                model =  NoFism2FlareAndDailyFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'NoFism2FlareAndDailyAndOmniFeedForward':
-                model = NoFism2FlareAndDailyAndOmniFeedForward(
-                     dropout=opt.dropout,
-                     hidden_size=opt.hidden_size,
-                     out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'OneGiantFeedForward':
-                model =  OneGiantFeedForward(
-                    dropout=opt.dropout,
-                    hidden_size=opt.hidden_size,
-                    out_features=opt.out_features).to(dtype=torch.float32)
-            elif opt.model == 'Fism2FlareDensityPredictor':
-                model = Fism2FlareDensityPredictor(
-                    input_size_thermo=dataset.data_thermo['data_matrix'].shape[1],
-                    input_size_fism2_flare=dataset.time_series_data['fism2_flare_stan_bands']['data_matrix'].shape[1],
-                    output_size_fism2_flare=opt.out_features,
-                    lstm_depth=opt.lstm_depth,
-                    dropout_lstm=opt.dropout,
-                    dropout_ffnn=opt.dropout
-                )
-
 
             validation_step_loader = torch.utils.data.DataLoader(dataset,
                                                                 batch_size=2,

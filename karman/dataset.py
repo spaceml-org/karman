@@ -16,8 +16,8 @@ class ThermosphericDensityDataset(Dataset):
         lag_minutes_omni=2*24*60,
         lag_minutes_fism2_flare_stan_bands = 12*60,
         lag_minutes_fism2_daily_stan_bands = 24*60,
-        omni_resolution=60,
-        fism2_flare_stan_bands_resolution=60,
+        omni_resolution=60, #1 hour
+        fism2_flare_stan_bands_resolution=60, #1 hour
         fism2_daily_stan_bands_resolution=24*60, #1 day
         features_to_exclude_thermo=['all__dates_datetime__', 'tudelft_thermo__satellite__',
                                     'tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]',
@@ -53,8 +53,66 @@ class ThermosphericDensityDataset(Dataset):
         include_daily_stan_bands=False,
         include_flare_stan_bands=False,
         thermo_scaler=None,
+        cyclical_feature_scaler=None,
+        thermospheric_density_scaler=None,
     ):
+        """
+        This class is used to load the dataset for the thermospheric density prediction task.
+        It is a subclass of torch.utils.data.Dataset, so it can be used with PyTorch's DataLoader.
+        For a description of the features supported in each dataset and their names, check the README.md file.
+        
+        The following input parameters are currently supported:
+            - omni data, from OMNIWeb NASA website (https://omniweb.gsfc.nasa.gov/form/omni_min.html)
+            - FISM2 flare stan bands, from FISM2 website (https://lasp.colorado.edu/lisird/data/fism_flare_bands/)
+            - FISM2 daily stan bands, from FISM2 website (https://lasp.colorado.edu/lisird/data/fism_daily_bands/)
+            - thermospheric density data, from the TU Delft website (http://thermosphere.tudelft.nl/)
+            - thermospheric density data, from the NRLMSISE00 model (https://kauai.ccmc.gsfc.nasa.gov/instantrun/msis)
+            - thermospheric density data, from the JB08 model (https://ccmc.gsfc.nasa.gov/modelweb/models/jb2008.php)
+        The data is loaded from the following files (that must be located under the `directory` path):
+            - 'data_omniweb_v1/omniweb_1min_data_2001_2022.h5'
+            - 'fism2_flare_stan_bands.h5'
+            - 'fism2_daily_stan_bands.h5'
+            - 'data_tudelft_thermo_v1/tudelft_thermo_1min_data_2004_2020.h5'
+            - 'data_nrlmsise00_thermo_v1/nrlmsise00_thermo_1min_data_2004_2020.h5'
+            - 'data_jb08_thermo_v1/jb08_thermo_1min_data_2004_2020.h5'
+        The loaded data supports the following time ranges:
+            - omni data: 2001-01-01 00:00:00 - 2022-01-01 00:00:00
+            - FISM2 flare stan bands: 2004-02-01 00:00:00 - 2020-01-01 23:59:00
+            - FISM2 daily stan bands: 2004-02-01 00:00:00 - 2020-01-01 23:59:00
+            - thermospheric density data, from the TU Delft website: 2004-02-01 00:00:00 - 2020-01-01 23:59:00
+            - thermospheric density data, from the NRLMSISE00 model: 2004-02-01 00:00:00 - 2020-01-01 23:59:00
+            - thermospheric density data, from the JB08 model: 2004-02-01 00:00:00 - 2020-01-01 23:59:00
+        
+        Parameters:
+        ------------
+            - directory (`str`): The directory where the data is stored.
+            - features_to_exclude_thermo (`list`): A list of strings, each string is the name of a feature to exclude from the thermospheric density data.
+            - features_to_exclude_omni (`list`): A list of strings, each string is the name of a feature to exclude from the omni data.
+            - features_to_exclude_fism2_flare_stan_bands (`list`): A list of strings, each string is the name of a feature to exclude from the FISM2 flare stan bands data.
+            - features_to_exclude_fism2_daily_stan_bands (`list`): A list of strings, each string is the name of a feature to exclude from the FISM2 daily stan bands data.
+            - omni_resolution (`int`): The resolution of the omni data.  Default is 60 minutes.
+            - fism2_flare_stan_bands_resolution (`int`): The resolution of the FISM2 flare stan bands data.  Default is 60 minutes.
+            - fism2_daily_stan_bands_resolution (`int`): The resolution of the FISM2 daily stan bands data.  Default is 24*60 minutes.
+            - create_cyclical_features (`bool`): Whether to create cyclical features for the time of day and the day of the year. Default is True.
+            - min_date (`str`): The minimum date to load data for. The format is 'YYYY-MM-DD HH:MM:SS'. Default is '2004-02-01 00:00:00'. 
+            - max_date (`str`): The maximum date to load data for. The format is 'YYYY-MM-DD HH:MM:SS'. Default is '2020-01-01 23:59:00'.
+            - max_altitude (`int`): The maximum altitude to load data for. Default is inf.
+            - lag_minutes_omni (`int`): The number of minutes to lag the omni data. Default is 2*24*60.
+            - lag_minutes_fism2_flare_stan_bands (`int`): The number of minutes to lag the FISM2 flare stan bands data. Default is 12*60.
+            - lag_minutes_fism2_daily_stan_bands (`int`): The number of minutes to lag the FISM2 daily stan bands data. Default is 24*60.
+            - include_omni (`bool`): Whether to include the omni data. Default is False.
+            - include_daily_stan_bands (`bool`): Whether to include the FISM2 daily stan bands data. Default is False.
+            - include_flare_stan_bands (`bool`): Whether to include the FISM2 flare stan bands data. Default is False.
+            - thermo_scaler (`str`): The scaler to use for the thermospheric density data. Can be 'minmax' or 'standard'. Default is None.
+        Returns:
+        ------------
+            - `DataLoader`: A DataLoader object.
+            
+        """
         self.features_to_exclude_thermo = features_to_exclude_thermo
+        self.features_to_exclude_fism2_daily_stan_bands=features_to_exclude_fism2_daily_stan_bands
+        self.features_to_exclude_fism2_flare_stan_bands=features_to_exclude_fism2_flare_stan_bands
+        self.features_to_exclude_omni=features_to_exclude_omni
         self.create_cyclical_features = create_cyclical_features
         self._directory = directory
         self.min_date = min_date
@@ -65,6 +123,7 @@ class ThermosphericDensityDataset(Dataset):
         self.include_daily_stan_bands = include_daily_stan_bands
         self.include_flare_stan_bands = include_flare_stan_bands
         self.thermo_scaler = thermo_scaler
+        self.thermospheric_density_scaler = thermospheric_density_scaler
 
         # Add time series data here.
         if self.include_omni:
@@ -109,7 +168,6 @@ class ThermosphericDensityDataset(Dataset):
         #Add constraints to the data here, e.g. altitude ranges
         self.data_thermo['data'] = self.data_thermo['data'][self.data_thermo['data']['tudelft_thermo__altitude__[m]'] <= self.max_altitude]
 
-
         #Awful feature where reset_index creates a column called 'index'. drop=True gets rid of this
         self.data_thermo['data'].reset_index(inplace=True, drop=True)
 
@@ -132,18 +190,29 @@ class ThermosphericDensityDataset(Dataset):
             print(features_to_exclude_thermo)
             print(self.cyclical_features)
             features_to_exclude_thermo = features_to_exclude_thermo + self.cyclical_features
+            if cyclical_feature_scaler is None:
+                cyclical_feature_scaler={}
+                scaler_cyclical=True
+            else:
+                scaler_cyclical=False
             for feature in self.cyclical_features:
                 # Sticking to the naming conventions here is very important.
                 unit = feature.split('__')[-1][1:-1]
                 if unit != 'rad':
-                    max_ = self.data_thermo['data'][feature].max()
-                    min_ = self.data_thermo['data'][feature].min()
+                    if scaler_cyclical:    
+                        max_ = self.data_thermo['data'][feature].max()
+                        min_ = self.data_thermo['data'][feature].min()
+                        cyclical_feature_scaler[feature] = {'max':max_, 'min':min_}
+                    else:
+                        max_=cyclical_feature_scaler[feature]['max']
+                        min_=cyclical_feature_scaler[feature]['min']
                     feature_as_radian = 2*np.pi*(self.data_thermo['data'][feature].values - min_)/(max_ - min_)
                     self.data_thermo['data'][f'{feature}_sin'] = np.sin(feature_as_radian)
                     self.data_thermo['data'][f'{feature}_cos'] = np.cos(feature_as_radian)
                 else:
                     self.data_thermo['data'][f'{feature}_sin'] = np.sin(self.data_thermo['data'][feature])
                     self.data_thermo['data'][f'{feature}_cos'] = np.cos(self.data_thermo['data'][feature])
+        self.cyclical_feature_scaler=cyclical_feature_scaler
         print(f'Used features: {self.data_thermo["data"].drop(columns=features_to_exclude_thermo).columns}')
         self.data_thermo['data_matrix'] = self.data_thermo['data'].drop(columns=features_to_exclude_thermo).values
         self.data_thermo['data_matrix'][np.isinf(self.data_thermo['data_matrix'])]=0.
@@ -151,18 +220,22 @@ class ThermosphericDensityDataset(Dataset):
         # to normalize cyclical features- they can stay as nice sinusoids
         if self.thermo_scaler is None:
             self.thermo_scaler = MinMaxScaler()
+            self.data_thermo['data_matrix'] = self.thermo_scaler.fit_transform(self.data_thermo['data_matrix'])#.astype(np.float32)
+        else:
+            self.data_thermo['data_matrix'] = self.thermo_scaler.transform(self.data_thermo['data_matrix'])#.astype(np.float32)
 
-        self.data_thermo['data_matrix'] = self.thermo_scaler.fit_transform(self.data_thermo['data_matrix']).astype(np.float32)
         self.data_thermo['data_matrix']  = torch.tensor(self.data_thermo['data_matrix'] ).detach()
         self.data_thermo['scaler'] = self.thermo_scaler
 
         # Normalize the thermospheric density.
         self.thermospheric_density = self.data_thermo['data']['tudelft_thermo__ground_truth_thermospheric_density__[kg/m**3]'].values
         thermospheric_density_log=np.log(self.thermospheric_density*1e12)
-        self.thermospheric_density_log_min=thermospheric_density_log.min()
-        self.thermospheric_density_log_max=thermospheric_density_log.max()
-        self.thermospheric_density=self.minmax_normalize(thermospheric_density_log, self.thermospheric_density_log_min, self.thermospheric_density_log_max)
-        self.thermospheric_density = torch.tensor(self.thermospheric_density).to(dtype=torch.float32).detach()
+        if self.thermospheric_density_scaler is None:
+            self.thermospheric_density_scaler={}
+            self.thermospheric_density_scaler['log_min']=thermospheric_density_log.min()
+            self.thermospheric_density_scaler['log_max']=thermospheric_density_log.max()
+        self.thermospheric_density=self.minmax_normalize(thermospheric_density_log, self.thermospheric_density_scaler['log_min'], self.thermospheric_density_scaler['log_max'])
+        self.thermospheric_density = torch.tensor(self.thermospheric_density).detach()
 
         print("\nFinished Creating dataset.")
 
@@ -170,60 +243,81 @@ class ThermosphericDensityDataset(Dataset):
         """
         Takes an underlying data files, stored in an hdf format, and loads and normalizes the data.
         It assumes that the data has an unbroken dates column 'all__dates_datetime__' at the same interval
-        from start to finish of the data. It replaces NaNs and Infinities by interpolating them away.
-
-        It resamples the dataset to a chosen resolution, specified in minutes.
-
-        It stores information about the dataset in a dictionary in the 'time_series_data' instance object
-        under the key 'data_name'
-            'date_start': Minimum date of the dataset as a pandas datetime object
-            'scaler': A scikit learn scaler used to normalize the data
-            'data': The underlying pandas dataframe
-            'data_matrix': The normalized torch tensor version of the dataframe.
-            'resolution': The resolution of the dataset in minutes.
-
+        from start to finish of the data. It replaces NaNs and +/-inf by interpolating them away. It also removes outliers
+        by removing data points that are 99.8% away from the mean.
         The method uses a QuantileTransformer class to scale the data. The reason is it is a very convenient way
         to scale data into a forced normal distribution
-
+        It resamples the dataset to a chosen resolution, specified in minutes. It modifies the data inplace, by creating a new
+        attribute to the dataset class, called time_series_data, which is a dictionary. 
         The motivation behind this method is to provide a common api to add any time series dataset to be attached to
         each thermospheric observation, making it easy to add new time series data into the logic.
+        Parameters:
+        ------------
+            - data_name (`str`): The name of the dataset. This is used to store the dataset in the 'time_series_data' dictionary. 
+            - data_file (`str`): The name of the hdf file containing the data. It is assumed to be in the same directory as the
+                thermospheric data.
+            - lag (`int`): The number of time steps to lag the data by. This is used to create a time series dataset. 
+            - resolution (`int`): The resolution of the dataset in minutes.
+            - excluded_features (`list`): A list of features to exclude from the dataset. This is useful if you want to exclude
+                features that are not needed for the model.
+            
+        Returns:
+        ------------
+            None
         """
+        # Data loading:
         self.time_series_data[data_name] = {}
         self.time_series_data[data_name]['data'] = pd.read_hdf(os.path.join(self._directory, data_file))
+        # we now index the data by the datetime column, and sort it by the index. The reason is that it is then easier to resample
         self.time_series_data[data_name]['data'].index = pd.to_datetime(self.time_series_data[data_name]['data']['all__dates_datetime__'])
         self.time_series_data[data_name]['data'].sort_index(inplace=True)
+        # We exclude the columns that are not needed for the model.
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].drop(columns=excluded_features, axis=1)
         # This is to remove significant outliers, such as the fism2 flare data which has 10^45 photons at one point. Regardless
         # of whther this is true or not, it severely affects the distribution.
         for column in self.time_series_data[data_name]['data'].columns:
             quantile = self.time_series_data[data_name]['data'][column].quantile(0.998)
             more_than = self.time_series_data[data_name]['data'][column] >= quantile
-            self.time_series_data[data_name]['data'][column][more_than] = None
+            self.time_series_data[data_name]['data'].loc[more_than, column] = None
+        # We replace NaNs and +/-inf by interpolating them away.
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].replace([np.inf, -np.inf], None)
         self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].interpolate(method='pad')
-        self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
+        # We resample the data to the chosen resolution. We use forward fill, to fill in the gaps. Another possibility is the mean.
+#        self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
+        self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].resample(f'{resolution}T').ffill()
+        # We store the start date of the dataset, and the data matrix.
         self.time_series_data[data_name]['date_start'] = min(self.time_series_data[data_name]['data'].index)
         self.time_series_data[data_name]['data_matrix'] = self.time_series_data[data_name]['data'].values
         # Some of the time series data is highly skewed, so much so even logging doesnt help
         # This method forces a normal distribution by mapping the quantiles to
         # a normal curve.
         scaler = QuantileTransformer(output_distribution='normal', n_quantiles=10_000)
-        self.time_series_data[data_name]['data_matrix'] = scaler.fit_transform(self.time_series_data[data_name]['data_matrix']).astype(np.float32)
+        # We scale the data, and convert it to a torch tensor.
+        self.time_series_data[data_name]['data_matrix'] = scaler.fit_transform(self.time_series_data[data_name]['data_matrix'])#.astype(np.float32)
         self.time_series_data[data_name]['data_matrix'] = torch.tensor(self.time_series_data[data_name]['data_matrix']).detach()
         self.time_series_data[data_name]['lag'] = lag
+        # We also store the scaler, so that we can unscale the data later.
         self.time_series_data[data_name]['scaler'] = scaler
         self.time_series_data[data_name]['resolution'] = resolution
 
     def unscale_density(self, scaled_density):
-        logged_density = (scaled_density * (self.thermospheric_density_log_max - self.thermospheric_density_log_min)) + self.thermospheric_density_log_min
+        logged_density = (scaled_density * (self.thermospheric_density_scaler['log_max'] - self.thermospheric_density_scaler['log_min'])) + self.thermospheric_density_scaler['log_min'] 
         return np.exp(logged_density)/1e12
 
     @lru_cache(maxsize=None)
     def index_to_date(self, index, date_start, delta_seconds):
         """
-        This function takes an index, a date_start of the dataset, and its equally spaced time interval in seconds, and returns the date corresponding
+        This function takes an index, the start date of the dataset, and its equally spaced time interval in seconds, and returns the date corresponding
         to the provided index. The assumptions are that: 1) the index corresponds to a date that is before the dataset end; 2) the dataset is equally
         spaced in time, and its spacing corresponds to `delta_seconds` seconds
+        Parameters:
+        ------------
+            - index (`int`): The index to convert to a date.
+            - date_start (`datetime`): The start date of the dataset.
+            - delta_seconds (`int`): The equally spaced time interval in seconds.
+        Returns:
+        ------------
+            - date (`datetime`): The date corresponding to the provided index.
         """
         date=date_start+datetime.timedelta(seconds=index*delta_seconds)
         return date
@@ -231,14 +325,33 @@ class ThermosphericDensityDataset(Dataset):
     @lru_cache(maxsize=None)
     def date_to_index(self, date, date_start, delta_seconds):
         """
-        This function takes a date, the date_start of the dataset, and its equally spaced intervals: delta_seconds (in seconds), and returns the
+        This function takes a date, the start date of the dataset, and its equally spaced intervals: delta_seconds (in seconds), and returns the
         corresponding index. Note that there are two assumptions: the first is that the date is within the end date of the dataset. And the latter,
         is that the dataset must be equally spaced, by a factor of `delta_seconds`.
+        Parameters:
+        ------------
+            - date (`datetime`): The date to convert to an index.
+            - date_start (`datetime`): The start date of the dataset.
+            - delta_seconds (`int`): The equally spaced time interval in seconds.
+        Returns:
+        ------------
+            - index (`int`): The index corresponding to the provided date.
         """
         delta_date=date-date_start
         return math.floor(delta_date.total_seconds()/delta_seconds)
 
     def minmax_normalize(self, values, min_, max_):
+        """
+        This function takes a set of values, and normalizes them between 0 and 1, using the provided min and max values.
+        Parameters:
+        ------------
+            - values (`np.array`): The values to normalize.
+            - min_ (`float`): The minimum value of the dataset.
+            - max_ (`float`): The maximum value of the dataset.
+        Returns:
+        ------------
+            - values (`np.array`): The normalized values.
+        """
         values = (values - min_)/(max_ - min_)
         return values
 
@@ -265,7 +378,6 @@ class ThermosphericDensityDataset(Dataset):
     def _set_indices(self, test_month_idx, validation_month_idx):
         """
         Works out which indices are in the training, validation and test sets.
-
         Previously, a file with indices was stored in the cloud. However, this way
         simply works it out based on dates, which I feel is much safer. It takes
         only a couple of minutes.

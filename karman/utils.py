@@ -1,3 +1,7 @@
+import cartopy.crs as ccrs
+import numpy as np
+import matplotlib.pyplot as plt
+
 import pandas as pd
 import torch
 import torch
@@ -8,12 +12,46 @@ from karman.nn import *
 import os
 from karman import Benchmark
 
+def plot_global_density(density, lon, lat, lon_view=0, lat_view=0, file_name=None):
+    fig = plt.figure(figsize=(15, 7))
+
+    # Create Plate Carrée projection
+    ax = fig.add_subplot(121, projection=ccrs.PlateCarree())
+
+    # Create lon-lat grid
+    lon_grid, lat_grid = np.meshgrid(lon, lat)
+
+    # Plot filled contours
+    im = ax.contourf(lon_grid, lat_grid, density, cmap='jet')
+
+    # Add coastlines
+    ax.coastlines()
+
+    # Create orthographic projection
+    ax_ortho = fig.add_subplot(122, projection=ccrs.Orthographic(central_longitude=lon_view, central_latitude=lat_view))
+
+    # Plot transformed data on orthographic projection
+    im_ortho = ax_ortho.pcolormesh(lon_grid, lat_grid, density, cmap='jet', transform=ccrs.PlateCarree())
+
+    # Add coastlines
+    ax_ortho.coastlines()
+
+    # Add colorbar
+    cbar = plt.colorbar(im, ax=[ax, ax_ortho], orientation='horizontal', label='Thermospheric Density [kg/m^3]')
+
+    if file_name is not None:
+        plt.tight_layout()
+        fig.savefig(file_name)
+
+    plt.show()
+    plt.close(fig)
 
 def load_model(model_path,
-               data_directory='/home/jupyter/karman-project/data_directory'):
+               data_directory='/home/jupyter/karman-project/data_directory',
+               map_location=torch.device('cpu')):
 
     print('Loading Data')
-    model_opt=torch.load(model_path)['opt']
+    model_opt=torch.load(model_path, map_location=map_location)['opt']
     print(model_opt)
 
     dataset=karman.ThermosphericDensityDataset(
@@ -25,10 +63,9 @@ def load_model(model_path,
 
     print('Loading Model')
 
-    if model_opt.model == 'SimpleNN':
-        model = SimpleNN().to(dtype=torch.float32)
-
-    state_dict = torch.load(os.path.join(model_path))['state_dict']
+    model = SimpleNN().to(dtype=torch.float64)
+    
+    state_dict = torch.load(os.path.join(model_path),map_location=map_location)['state_dict']
     #Sanitize state_dict key names
     for key in list(state_dict.keys()):
         if key.startswith('module'):

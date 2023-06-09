@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 from io import StringIO
+import karman
 from karman import ThermosphericDensityDataset
 #idxs=np.random.choice(range(0,len(data)),20)
 #data.loc[idxs].to_csv("sample_data_test.csv")

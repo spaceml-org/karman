@@ -1,4 +1,5 @@
 import unittest
+import karman
 from io import StringIO
 
 class NNTestCases(unittest.TestCase):

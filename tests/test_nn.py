@@ -2,6 +2,7 @@ import unittest
 import karman
 import os
 import torch
+import pandas as pd
 from io import StringIO
 
 class NNTestCases(unittest.TestCase):

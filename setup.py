@@ -30,7 +30,7 @@ setup(
     author='Karman Team',
     #author_email='giacomo.acciarini@gmail.com',
     packages=find_packages(),
-    install_requires=['numpy','pandas','torch','pyfiglet>=0.8.0','tqdm','termcolor','tables','cartopy', 'sklearn'],
+    install_requires=['numpy','pandas','torch','pyfiglet>=0.8.0','tqdm','termcolor','tables','cartopy', 'scikit-learn'],
     extras_require={'dev': ['pytest', 'pyatmos', 'coverage', 'pytest-xdist', 'flake8']},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)', 'Programming Language :: Python :: 3']
 )

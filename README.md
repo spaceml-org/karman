@@ -4,7 +4,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/spaceml-org/karman">
-    <img src="docs/source/__static/Karman_logo_black.png" alt="Logo" width="280" height="120">
+    <img src="docs/source/__static/Karman_logo_black.png" alt="Logo" width="380" height="120">
   </a>
   <p align="center">
     Karman: ML and thermospheric density modelling

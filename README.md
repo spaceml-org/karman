@@ -35,6 +35,8 @@ Currently, the Karman software supports several input data from different source
 * [EUV Stan Bands from FISM2](https://lasp.colorado.edu/lisird/data/fism_flare_bands/) empirical model (both daily and flare).
 * Solar irradiance proxies commonly used in empirical thermospheric density models (i.e., F10.7, S10.7, M10.7, Y10.7).
 
+![Karman Schematic Illustration](docs/source/__static/karman_schematic_illustration.png)
+
 ## Installation, documentation, and examples
 
 https://readthedocs.org/projects/karman-project/

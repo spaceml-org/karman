@@ -54,5 +54,9 @@ The project originated after the initial work of the [NASA-FDL 2021](https://fro
 
 Solar Drag team members: Giacomo Acciarini, Atılım Güneş Baydin, Chris Bridges, Stefano Bonasera, Edward Brown, Jorge A. Pérez-Hernández, Bernard Benson, Eric Sutton, Moriba K. Jah.
 
+## Acknowledgements:
+
+The authors would like to ackowledge the support and precious feedback of several people: [Dr. Madhulika Guhathakurta](https://science.nasa.gov/about-us/organization-and-leadership/lead-program-scientist-for-lws), [Tom Berger](https://www.colorado.edu/spaceweather/thomas-berger), and all the NASA-FDL 2021 reviewers.
+
 ## Contact:
 * `giacomo.acciarini@gmail.com`

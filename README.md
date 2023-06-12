@@ -1,3 +1,8 @@
+[![Install package and run tests](https://github.com/spaceml-org/karman/actions/workflows/install-and-test.yaml/badge.svg)](https://github.com/spaceml-org/karman/actions/workflows/install-and-test.yaml)
+
+[![codecov](https://codecov.io/gh/Sceki/karman-private/branch/main/graph/badge.svg?token=XKMX6CPTNI)](https://codecov.io/gh/Sceki/karman-private)
+
+[![docs](https://readthedocs.org/projects/karman-project/badge/?version=latest)](https://karman-project.readthedocs.io/en/latest/?badge=latest)
 
 
 <!-- PROJECT LOGO -->

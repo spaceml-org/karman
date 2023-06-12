@@ -31,7 +31,7 @@ class NNTestCases(unittest.TestCase):
         dataset._set_indices(test_month_idx=[1], validation_month_idx=[0])        
         model_path='tests/data/kml_model'
 
-        model = SimpleNN().to(dtype=torch.float64)
+        model = karman.nn.SimpleNN().to(dtype=torch.float64)
 
         state_dict = torch.load(os.path.join(model_path),map_location=torch.device('cpu'))['state_dict']
         #Sanitize state_dict key names

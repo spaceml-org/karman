@@ -20,6 +20,20 @@
 
 Karman is a machine learning Python package for thermospheric density modelling. It was developed as a collaboration between the Heliophysics Division of NASA and [Trillium Technologies](https://trillium.tech/) under a NASA-funded Sole Source project. Its main goal is to improve our understanding and modeling of thermospheric density variations due to the Sun's influence. 
 
+## Goals
+
+* Release of ML models to predict thermospheric density changes from solar and geomagnetic data, trained on precise orbit determination (POD)-derived thremospheric density measurements. 
+* A framework to support ingestion of solar irradiance, geomagnetic and thermospheric density data from different sources.
+* Benchmarking framework to enable comparison between ML and empirical models at different geomagnetic storm conditions, altitude, times, etc.
+
+## Supported Data
+
+Currently, the Karman software supports several input data from different sources:
+* High frequency (i.e., every 30 or 10 seconds) POD-derived thermospheric density data from five space missions (CHAMP, GOCE, GRACE, SWARM-A, SWARM-B), from [TU Delft thermosphere data](http://thermosphere.tudelft.nl/).
+* NRLMSISE-00 and JB-08 thermospheric density empirical models inputs (and corresponding predicted density).
+* Geomagnetic input data from [NASA's OMNIWeb high resolution data](https://omniweb.gsfc.nasa.gov/form/omni_min.html).
+* [EUV Stan Bands from FISM2](https://lasp.colorado.edu/lisird/data/fism_flare_bands/) empirical model (both daily and flare).
+* Solar irradiance proxies commonly used in empirical thermospheric density models (i.e., F10.7, S10.7, M10.7, Y10.7).
 
 ## Installation, documentation, and examples
 

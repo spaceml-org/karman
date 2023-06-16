@@ -21,7 +21,7 @@
   </p>
 </p>
 
-Karman is a machine learning Python package for thermospheric density modelling. It was developed as a collaboration between the Heliophysics Division of NASA and [Trillium Technologies](https://trillium.tech/) under a NASA-funded Sole Source project. Its main goal is to improve our understanding and modeling of thermospheric density variations due to the Sun's influence. 
+Karman is a machine learning (ML) Python package for thermospheric density modelling. It was developed as a collaboration between the Heliophysics Division of NASA and [Trillium Technologies](https://trillium.tech/) under a NASA-funded Sole Source project. Its main goal is to improve our understanding and modeling of thermospheric density variations due to the Sun's influence. Furthermore, it also has the objective to provide a shared framework where people can design, train and benchmark their own thermospheric density models.
 
 ## Goals
 

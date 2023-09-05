@@ -52,7 +52,7 @@ https://readthedocs.org/projects/karman-project/
 
 The project originated after the initial work of the [NASA-FDL 2021](https://frontierdevelopmentlab.org/fdl-2021) Solar Drag team, funded by the Heliophysics Division of NASA.
 
-Solar Drag team members: Giacomo Acciarini, Atılım Güneş Baydin, Chris Bridges, Stefano Bonasera, Edward Brown, Jorge A. Pérez-Hernández, Bernard Benson, Eric Sutton, Moriba K. Jah.
+Solar Drag team members: Researchers: Stefano Bonasera, Edward Brown, Jorge A. Pérez-Hernández, Bernard Benson; Faculty: Giacomo Acciarini, Atılım Güneş Baydin, Chris Bridges; Advisors: Eric Sutton, Moriba K. Jah.
 
 ## Acknowledgements:
 

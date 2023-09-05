@@ -1,3 +1,5 @@
 myst-nb==0.12.3
 Jinja2<3.1
+# System-level dependency for building documentation on ReadTheDocs
+libgeos-dev
 .[docs]  # Install karman from current directory

@@ -54,6 +54,23 @@ The project originated after the initial work of the [NASA-FDL 2021](https://fro
 
 Solar Drag team members: Researchers: Stefano Bonasera, Edward Brown, Jorge A. Pérez-Hernández, Bernard Benson; Faculty: Giacomo Acciarini, Atılım Güneş Baydin, Chris Bridges; Advisors: Eric Sutton, Moriba K. Jah.
 
+## More info and how to cite:
+
+If you would like to learn more about or cite the techniques Karman uses, please see the following papers:
+
+* Giacomo Acciarini, Edward Brown, Christopher Bridges, Atılım Güneş Baydin, Thomas E. Berger, Madhulika Guhathakurta. 2023. ["Karman - a Machine Learning Software Package for Benchmarking Thermospheric Density Models"](https://www.researchgate.net/publication/374005215_Karman_-a_Machine_Learning_Software_Package_for_Benchmarking_Thermospheric_Density_Models). In Advanced Maui Optical and Space Surveillance Technologies Conference (AMOS) – www.amostech.com.
+
+```
+@inproceedings{karman-amos-acciarini,
+  author    = {Giacomo Acciarini and Edward Brown and Christopher Bridges and Atılım Güneş Baydin and Thomas E. Berger and Madhulika Guhathakurta},
+  title     = {Karman - a Machine Learning Software Package for Benchmarking Thermospheric Density Models},
+  booktitle = {Proceedings of the Advanced Maui Optical and Space Surveillance Technologies Conference (AMOS)},
+  year      = {2023},
+  month     = {September},
+  day       = {19},
+}
+```
+
 ## Acknowledgements:
 
 The authors would like to ackowledge the support and precious feedback of several people: [Dr. Madhulika Guhathakurta](https://science.nasa.gov/about-us/organization-and-leadership/lead-program-scientist-for-lws), [Tom Berger](https://www.colorado.edu/spaceweather/thomas-berger), and all the NASA-FDL 2021 reviewers.

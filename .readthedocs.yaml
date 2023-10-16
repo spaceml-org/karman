@@ -26,4 +26,3 @@ formats:
 python:
    install:
      - requirements: docs/requirements.txt
-     - sphinx-rtd-theme

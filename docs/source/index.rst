@@ -26,6 +26,7 @@ The documentation is currently a work in progress.
    tutorials/get_started
    tutorials/generate_globe_data
    tutorials/plot_globe_data
+   tutorials/st_patrick_storm_2015
 
 
 .. toctree::

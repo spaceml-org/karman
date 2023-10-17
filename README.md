@@ -12,7 +12,7 @@
   <p align="center">
     Karman: Data Driven Thermospheric Density Modeling
     <br />
-    <a href="https://readthedocs.org/projects/karman-project/"><strong>Explore the docs »</strong></a>
+    <a href="https://karman-project.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/spaceml-org/karman/issues">Report Bug</a>

@@ -59,7 +59,7 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['__static']
-html_logo = '__static/Karman_logo_black.png'
+html_logo = '__static/Karman_logo_white.png'
 # html_favicon = '__static/favicon.ico'
 html_theme_options = {
     'logo_only': True,

@@ -42,7 +42,7 @@ Currently, the Karman software supports several input data from different source
 
 ## Installation, documentation, and examples
 
-https://readthedocs.org/projects/karman-project/
+https://karman-project.readthedocs.io/en/latest/
 
 ## Authors:
 * [Giacomo Acciarini](https://www.surrey.ac.uk/people/giacomo-acciarini)

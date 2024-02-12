@@ -58,6 +58,21 @@ Solar Drag team members: Researchers: Stefano Bonasera, Edward Brown, Jorge A. P
 
 If you would like to learn more about or cite the techniques Karman uses, please see the following papers:
 
+* Giacomo Acciarini, Edward Brown, Thomas E. Berger, Madhulika Guhathakurta, James Parr, Christopher Bridges, Atılım Güneş Baydin. 2024. ["Improving Thermospheric Density Predictions in Low-Earth Orbit with Machine Learning"](https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1029/2023SW003652). In Space Weather Journal.
+
+```
+@article{acciarini2024improving,
+  title={Improving Thermospheric Density Predictions in Low-Earth Orbit With Machine Learning},
+  author={Acciarini, Giacomo and Brown, Edward and Berger, Tom and Guhathakurta, Madhulika and Parr, James and Bridges, Christopher and Baydin, At{\i}l{\i}m G{\"u}ne{\c{s}}},
+  journal={Space Weather},
+  volume={22},
+  number={2},
+  pages={e2023SW003652},
+  year={2024},
+  publisher={Wiley Online Library}
+}
+```
+
 * Giacomo Acciarini, Edward Brown, Christopher Bridges, Atılım Güneş Baydin, Thomas E. Berger, Madhulika Guhathakurta. 2023. ["Karman - a Machine Learning Software Package for Benchmarking Thermospheric Density Models"](https://www.researchgate.net/publication/374005215_Karman_-a_Machine_Learning_Software_Package_for_Benchmarking_Thermospheric_Density_Models). In Advanced Maui Optical and Space Surveillance Technologies Conference (AMOS) – www.amostech.com.
 
 ```

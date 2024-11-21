@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import math
 from . import nn
-from .density_models import scalers_dict, normalization_dict_ts
+from .density_models import scalers_dict, _normalization_dict, _normalization_dict_ts, df_sw, _omni_indices, _omni_magnetic_field, _omni_solar_wind, _soho, _msise
 
 def exponential_atmosphere(altitudes):    
     """
@@ -50,30 +50,215 @@ def scale_density(density,normalization_dict):
     log_max=normalization_dict['log_density']['max']
     return 2. * (tmp - log_min) / (log_max - log_min) - 1.
 
-def date_to_index(date, date_start, delta_seconds):
-    delta_date = date - date_start
+def date_to_index(dates, date_start, delta_seconds):
+    """
+    Converts one or multiple dates to their corresponding indices based on the start date and a fixed time interval.
     
-    #if it's not a vector, we can just return the index:
-    return math.floor(delta_date.total_seconds() / delta_seconds)
+    Parameters:
+    ------------
+        - dates (`datetime` or array-like of `datetime`): Single date or an array of dates to convert to indices.
+        - date_start (`datetime`): The start date of the dataset.
+        - delta_seconds (`int`): The equally spaced time interval in seconds.
+        
+    Returns:
+    ------------
+        - indices (`int` or `np.ndarray`): The index or indices corresponding to the provided date(s).
+    """
+    # Convert inputs to Pandas Timestamps for consistency
+    if not isinstance(dates, pd.Series):
+        dates = pd.Series(dates)
+    
+    # Calculate the time difference (in seconds) between each date and the start date
+    delta_seconds_array = (dates - pd.Timestamp(date_start)).dt.total_seconds()
+    
+    # Compute indices by dividing the difference by delta_seconds
+    indices = np.floor(delta_seconds_array / delta_seconds).astype(int)
+    
+    return indices if len(indices) > 1 else indices.iloc[0]
 
-def get_normalized_time_series(time_series_data_normalized,
+def get_static_data(dates,
+                    normalization_dict,
+                    altitudes,
+                    longitudes,
+                    latitudes,
+                    df_thermo=None):
+    if normalization_dict is None:
+        normalization_dict=_normalization_dict_ts
+    if df_thermo is None:
+        df_thermo=df_sw
+    dates=pd.to_datetime(dates)
+    sw=find_sw_from_thermo(dates,df_thermo)
+
+    doy=torch.tensor(dates.dayofyear,dtype=torch.float32)
+    #doy = date.timetuple().tm_yday
+    sid = torch.tensor(dates.hour * 3600 + dates.minute * 60 + dates.second + dates.microsecond / 1e6,dtype=torch.float32)
+    feature_as_radian = (2* np.pi * (doy-normalization_dict['all__day_of_year__[d]']["min"])/ (normalization_dict['all__day_of_year__[d]']["max"] - normalization_dict['all__day_of_year__[d]']["min"]))
+    all_doy_sin=feature_as_radian.sin()
+    all_doy_cos=feature_as_radian.cos()
+
+    feature_as_radian = (2* np.pi * (sid-normalization_dict['all__seconds_in_day__[s]']["min"])/ (normalization_dict['all__seconds_in_day__[s]']["max"] - normalization_dict['all__seconds_in_day__[s]']["min"]))
+    sid_sin=feature_as_radian.sin()
+    sid_cos=feature_as_radian.cos()
+
+    lon=torch.tensor(longitudes,dtype=torch.float32)
+    lon_sin=torch.deg2rad(lon).sin()
+    lon_cos=torch.deg2rad(lon).cos()
+
+    inputs={}
+    static_features=[]
+    alt_n=2*(torch.tensor(altitudes,dtype=torch.float32)-normalization_dict['tudelft_thermo__altitude__[m]']["min"])/(normalization_dict['tudelft_thermo__altitude__[m]']["max"]-normalization_dict['tudelft_thermo__altitude__[m]']["min"])-1
+    lat_n=2*(torch.tensor(latitudes,dtype=torch.float32)-normalization_dict['tudelft_thermo__latitude__[deg]']["min"])/(normalization_dict['tudelft_thermo__latitude__[deg]']["max"]-normalization_dict['tudelft_thermo__latitude__[deg]']["min"])-1
+    static_features.append(alt_n)
+    static_features.append(lat_n)
+    for feature in normalization_dict.keys():
+        if feature not in ['all__day_of_year__[d]', 
+                           'all__seconds_in_day__[s]', 
+                           'tudelft_thermo__longitude__[deg]',
+                           'tudelft_thermo__altitude__[m]',
+                           'tudelft_thermo__latitude__[deg]',
+                           'log_density']:
+            try:
+                feature_sw=feature.split('__')[-2]
+                static_features.append(2*(torch.tensor(sw[feature].values,dtype=torch.float32)-normalization_dict[feature]["min"])/(normalization_dict[feature]["max"]-normalization_dict[feature]["min"])-1)
+            except Exception as e:
+                print(f"Note, {feature_sw} not found in the sw dictionary, you have to use: f107_obs, f107_average, s107_obs, s107_average, m107_obs, m107_average, f107_obs, f107_average, ap_average, d_st_dt")
+    static_features.append(lon_sin)
+    static_features.append(lon_cos)
+    static_features.append(all_doy_sin)
+    static_features.append(all_doy_cos)
+    static_features.append(sid_sin)
+    static_features.append(sid_cos)
+    static_features=torch.stack(static_features,axis=1)
+    return static_features
+
+def prepare_ts_data(data,
                                 start_date,
                                 resolution,
                                 lag,
-                                date
+                                dates
                                ):
-    now_index = date_to_index(pd.to_datetime(date), 
+    """
+    This function takes the time series normalized torch tensor and returns them in a three-dimensional tensor format,
+    already compatible for time series forecasting.
+
+    Parameters:
+    ------------
+        - data (`torch.Tensor`): The time series data tensor.
+        - start_date (`str`): The start date of the dataset.
+        - resolution (`int`): The resolution of the data in minutes.
+        - lag (`int`): The lag in minutes.
+        - dates (`list`): The list of dates to extract the sequences from the tensor.
+
+    Returns:
+    ------------
+        - sequences (`torch.Tensor`): The time series data tensor in the forecasting format.
+    """
+    now_index = date_to_index(pd.to_datetime(dates), 
                                    start_date,
                                     60 * resolution)
-    lagged_index = date_to_index(pd.to_datetime(date) - pd.Timedelta(minutes=lag),
+    lagged_index = date_to_index(pd.to_datetime(dates) - pd.Timedelta(minutes=lag),
                                         start_date,
                                         60 * resolution,)
-    return time_series_data_normalized[lagged_index : (now_index + 1), :]
+    sequences_past = []
+    sequences_future = []
+    for i in range(len(now_index)):
+        window = data[lagged_index[i]:now_index[i]]  # Extract values from tensor, up to the semi-last one (since we want to predict the last)
+        sequences_past.append(window)
+        sequences_future.append(data[now_index[i]])
+    return torch.stack(sequences_past), torch.stack(sequences_future)
+    
+def get_ts_data( ts_data_normalized,   
+                 dates,
+                 omni_indices=None,
+                 omni_magnetic_field=None,
+                 omni_solar_wind=None,
+                 soho=None,
+                 msise=None):
+    """
+    
+        - omni_indices (`dict`): dictionary containing the parameters for the omni indices
+        - omni_magnetic_field (`dict`): dictionary containing the parameters for the omni magnetic field
+        - omni_solar_wind (`dict`): dictionary containing the parameters for the omni solar wind
+        - soho (`dict`): dictionary containing the parameters for the SOHO data
+        - msise (`dict`): dictionary containing the parameters for the NRLMSISE-00 data
+
+    """
+    if omni_indices is None:
+        omni_indices = _omni_indices  # Assign default here
+    if omni_magnetic_field is None:
+        omni_magnetic_field = _omni_magnetic_field
+    if omni_solar_wind is None:
+        omni_solar_wind = _omni_solar_wind
+    if soho is None:
+        soho = _soho
+    if msise is None:
+        msise = _msise
+
+    historical_ts_numeric=[]
+    future_ts_numeric=[]
+    #NOTE: historical_ts_numeric has shape: n_elements x n_time_steps x n_features
+    #      future_ts_numeric has shape: n_elements x n_time_steps x n_features (we usually assume n_time_steps to be 1 here)
+    #      static_feats_numeric has shape: n_elements x n_features
+    if omni_indices["lag"] is not None and omni_indices["resolution"] is not None:
+        #here I do this radomly, TODO -> do this via pulling from the database directly and then using the scaler to normalize:
+        omni_indices_inputs,_=prepare_ts_data(ts_data_normalized["omni_indices"]["values"],
+                                                                start_date=pd.to_datetime(ts_data_normalized["omni_indices"]['start_date']),
+                                                                resolution=omni_indices["resolution"],
+                                                                lag=omni_indices["lag"],
+                                                                dates=dates)
+        historical_ts_numeric+=[omni_indices_inputs]
+
+    if omni_magnetic_field["lag"] is not None and omni_magnetic_field["resolution"] is not None:
+        omni_magnetic_field_inputs=[]
+        omni_magnetic_field_inputs,_=prepare_ts_data(ts_data_normalized["omni_magnetic_field"]["values"],
+                                                            pd.to_datetime(ts_data_normalized["omni_magnetic_field"]['start_date']),
+                                                            resolution=omni_magnetic_field["resolution"],
+                                                            lag=omni_magnetic_field["lag"],
+                                                            dates=dates)
+        historical_ts_numeric+=[omni_magnetic_field_inputs]
+    if omni_solar_wind["lag"] is not None and omni_solar_wind["resolution"] is not None:
+        omni_solar_wind_inputs,_=prepare_ts_data(ts_data_normalized["omni_solar_wind"]["values"],
+                                                                pd.to_datetime(ts_data_normalized["omni_solar_wind"]['start_date']),
+                                                                resolution=omni_solar_wind["resolution"],
+                                                                lag=omni_solar_wind["lag"],
+                                                                dates=dates)
+        historical_ts_numeric+=[omni_solar_wind_inputs]
+
+    if soho["lag"] is not None and soho["resolution"] is not None:
+        soho_inputs,_=prepare_ts_data(ts_data_normalized["soho"]["values"],
+                                                            pd.to_datetime(ts_data_normalized["soho"]['start_date']),
+                                                            resolution=soho["resolution"],
+                                                            lag=soho["lag"],
+                                                            dates=dates)
+        historical_ts_numeric+=[soho_inputs]
+
+    if msise["lag"] is not None and msise["resolution"] is not None:
+        msise_inputs, msise_last = prepare_ts_data(ts_data_normalized["msise"]["values"],
+                                                 pd.to_datetime(ts_data_normalized["msise"]['start_date']),
+                                                            resolution=msise["resolution"],
+                                                            lag=msise["lag"],
+                                                            dates=dates)
+        historical_ts_numeric+=[msise_inputs]
+        future_ts_numeric+=[msise_last.reshape(msise_last.shape[0],1,msise_last.shape[1])]
+
+    if len(historical_ts_numeric)>1:
+        historical_ts_numeric=torch.cat(historical_ts_numeric,dim=2)
+    else:
+        historical_ts_numeric=historical_ts_numeric[0]
+
+    if len(future_ts_numeric)>1:
+        future_ts_numeric=torch.cat(future_ts_numeric,dim=2)
+    else:
+        future_ts_numeric=future_ts_numeric[0]
+    return historical_ts_numeric, future_ts_numeric
 
 #getter for time series data:
 def normalize_time_series_data(resolution,
                                 data_path,
+#                                min_date=pd.to_datetime("2000-07-29 00:59:47"),
+#                                max_date=pd.to_datetime("2024-05-31 23:59:32")
                          ):
+        print(f"Normalizing time series data (note that it can take a couple of minutes)")
         data_names=data_path.keys()
         # Data loading:
         time_series_data={}
@@ -95,10 +280,10 @@ def normalize_time_series_data(resolution,
                     data.loc[more_than, column] = None
                 # We replace NaNs and +/-inf by interpolating them away.
                 data = data.replace([np.inf, -np.inf], None)
-                data = data.interpolate(method="pad")
+                data.ffill(inplace=True)
                 # We resample the data to the chosen resolution. We use forward fill, to fill in the gaps. Another possibility is the mean.
                 #time_series_data[data_name]['data'] = time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
-                data = (data.resample(f"{resolution}T").ffill())
+                data = (data.resample(f"{resolution}min").ffill())
                 # We store the start date of the dataset, and the data matrix.
                 values = data.values
                 # We scale the data, and convert it to a torch tensor.
@@ -119,7 +304,7 @@ def normalize_time_series_data(resolution,
                         data = data.drop(columns=['all__dates_datetime__'], axis=1)
                     # We resample the data to the chosen resolution. We use forward fill, to fill in the gaps. Another possibility is the mean.
                     #time_series_data[data_name]['data'] = time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
-                    data = (data.resample(f"{resolution}T").ffill())
+                    data = (data.resample(f"{resolution}min").ffill())
                     # We store the start date of the dataset, and the data matrix.
                     values = torch.tensor(data.values,dtype=torch.float32).detach()
                     #let's normalize it - being a thermospheric density, this strategy is different than the other time series:

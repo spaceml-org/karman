@@ -466,10 +466,10 @@ class KarmanDataset(Dataset):
                 self.time_series_data[data_name]["data"].loc[more_than, column] = None
             # We replace NaNs and +/-inf by interpolating them away.
             self.time_series_data[data_name]["data"] = self.time_series_data[data_name]["data"].replace([np.inf, -np.inf], None)
-            self.time_series_data[data_name]["data"] = self.time_series_data[data_name]["data"].interpolate(method="pad")
+            self.time_series_data[data_name]["data"] = self.time_series_data[data_name]["data"].ffill()
             # We resample the data to the chosen resolution. We use forward fill, to fill in the gaps. Another possibility is the mean.
             #self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
-            self.time_series_data[data_name]["data"] = (self.time_series_data[data_name]["data"].resample(f"{resolution}T").ffill())
+            self.time_series_data[data_name]["data"] = (self.time_series_data[data_name]["data"].resample(f"{resolution}min").ffill())
             # We store the start date of the dataset, and the data matrix.
             self.time_series_data[data_name]["date_start"] = min(self.time_series_data[data_name]["data"].index)
             self.time_series_data[data_name]["column_names"] = self.time_series_data[data_name]["data"].columns
@@ -494,7 +494,7 @@ class KarmanDataset(Dataset):
             self.time_series_data[data_name]["data"] = self.time_series_data[data_name]["data"].drop(columns=excluded_features, axis=1)
             # We resample the data to the chosen resolution. We use forward fill, to fill in the gaps. Another possibility is the mean.
             #self.time_series_data[data_name]['data'] = self.time_series_data[data_name]['data'].resample(f'{resolution}T').mean()
-            self.time_series_data[data_name]["data"] = (self.time_series_data[data_name]["data"].resample(f"{resolution}T").ffill())
+            self.time_series_data[data_name]["data"] = (self.time_series_data[data_name]["data"].resample(f"{resolution}min").ffill())
             # We store the start date of the dataset, and the data matrix.
             self.time_series_data[data_name]["date_start"] = min(self.time_series_data[data_name]["data"].index)
             self.time_series_data[data_name]["column_names"] = self.time_series_data[data_name]["data"].columns

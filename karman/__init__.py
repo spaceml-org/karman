@@ -5,5 +5,4 @@ torch.set_default_dtype(torch.float32)
 
 from .dataset import KarmanDataset
 from .nn import SimpleNetwork
-from .util import exponential_atmosphere, scale_density, date_to_index, get_normalized_time_series, normalize_time_series_data, find_sw_from_thermo 
-
+from .util import exponential_atmosphere, scale_density, date_to_index, normalize_time_series_data, get_ts_data, find_sw_from_thermo 

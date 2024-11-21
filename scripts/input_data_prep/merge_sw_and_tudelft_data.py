@@ -27,7 +27,9 @@ def merge_satellites_and_sw():
     parser = argparse.ArgumentParser(description='Merging Space Weather Indices and TU Delft Thermospheric Density Data', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--input_dir_tudelft', type=str, default='../../data/tudelft_data', help='Input directory of TU Delft data')
-    parser.add_argument('--input_dir_sw_data', type=str, default='../../data/tudelft_data', help='Input directory of TU Delft data')
+    parser.add_argument('--input_dir_sw_data', type=str, default='../../data/sw_data', help='Input directory of SW Indices data')
+    parser.add_argument('--input_dir_nrlmsise00_data',type=str, default='../../data/nrlmsise00_data',help='Input directory of NRLMSISE-00 data')
+    parser.add_argument('--fraction',type=str, default=0.01,help='Fraction of the data (sampled randomly) to store to file, for training, analysis, etc.')
     parser.add_argument('--output_dir', type=str, default='../../data/merged_datasets', help='Output directory of processed data')
 
     opt = parser.parse_args()
@@ -57,7 +59,18 @@ def merge_satellites_and_sw():
                             sw_data, 
                             on='all__dates_datetime__', 
                             direction='backward')
-    del df
+    del df, sw_data, celestrack_sw
+
+    #now the nrlmsise00 data:
+    df_nrlmsise00=pd.read_csv(os.path.join(opt.input_dir_nrlmsise00_data,'densities_msise.csv'))
+    #let's add it as a column
+    df_merged['NRLMSISE00__thermospheric_density__[kg/m**3]']=df_nrlmsise00.values.flatten()
+    df_merged.reset_index(drop=True,inplace=True)
+    df_merged.sort_values(by='all__dates_datetime__', inplace=True)
+    #print('msise merged to data, let s save it to csv -> satellites_data_w_sw.csv')
+    #df_merged.to_csv(os.path.join(opt.output_dir,'satellites_data_w_sw.csv'),index=False)
+    #print('done')
+
 
     to_drop=[]
     for col in df_merged.columns:
@@ -71,8 +84,31 @@ def merge_satellites_and_sw():
     df_merged.reset_index(drop=True,inplace=True)
     df_merged.sort_values(by='all__dates_datetime__', inplace=True)
     df_merged.reset_index(drop=True,inplace=True)
-    #now let's also add msise density data as an extra column:
-    df_merged.to_csv(os.path.join(opt.output_dir,'satellites_data_w_sw_no_msise.csv'),index=False)
+
+    #subset of 1% of the data (taken randomly):
+    print('let s now subsample the dataset to 1% (randomly), and store it:')
+    sampled_values = df_merged.sample(frac=opt.fraction, random_state=1)
+    sampled_values.sort_values(by='all__dates_datetime__', inplace=True)
+    sampled_values.reset_index(drop=True,inplace=True)
+    print('and save it')
+    sampled_values.to_csv(os.path.join(opt.output_dir,'satellites_data_w_sw_2mln.csv'),index=False)
+
+    #description csv (useful for holding statistics about the data)
+    print('let s also store the summary statistics to csv')
+    df_describe=df_merged.describe()
+    df_describe.to_csv(os.path.join(opt.output_dir,'satellites_data_w_sw_describe.csv'),index=False)
+    print('Done')
+
+    #let's also produce a subsampled (1 day resolution) version of the data
+    vals=pd.to_datetime(sampled_values['all__dates_datetime__'].values)
+    new_dates=pd.to_datetime([f'{v.year}-{v.month}-{v.day}' for v in vals])
+    idx_unique=np.unique(new_dates,return_index=True)[1]
+    subset=sampled_values.iloc[list(idx_unique)].reset_index(drop=True)
+    subset['all__dates_datetime__']=np.unique(new_dates)
+    subset.to_csv(os.path.join(opt.output_dir,'satellites_data_subsampled_1d.csv'),index=False)
+    
+    ##now let's also print the final db:
+    #df_merged.to_csv(os.path.join(opt.output_dir,'satellites_data_w_sw_no_msise.csv'),index=False)
 
 if __name__ == "__main__":
     time_start = time.time()

@@ -34,7 +34,7 @@ setup(
     author='',
     author_email='giacomo.acciarini@gmail.com',
     packages=find_packages(),
-    url='https://github.com/esa/spaceml-org/karman',
+    url='https://github.com/spaceml-org/karman',
     install_requires=['numpy', 'torch', 'matplotlib'],
     extras_require={'dev': ['pytest', 'coverage', 'pytest-xdist']},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)', 'Programming Language :: Python :: 3']

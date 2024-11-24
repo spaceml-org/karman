@@ -255,6 +255,7 @@ def get_ts_data( ts_data_normalized,
 #getter for time series data:
 def normalize_time_series_data(resolution,
                                 data_path,
+                                normalization_dict_ts=_normalization_dict_ts
 #                                min_date=pd.to_datetime("2000-07-29 00:59:47"),
 #                                max_date=pd.to_datetime("2024-05-31 23:59:32")
                          ):

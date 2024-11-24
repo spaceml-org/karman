@@ -135,7 +135,7 @@ def nowcasting_model(dates,
                                             latitudes=latitudes)
     expo=util.exponential_atmosphere(torch.tensor(altitudes)/1e3)
     with torch.no_grad():
-        out_nn=torch.tanh(karman_model(inputs).flatten())
+        out_nn=torch.tanh(karman_model(static_features).flatten())
     #scale the exponential density:
     tmp = torch.log10(expo)
     log_min=normalization_dict['log_density']['min']

@@ -2,28 +2,34 @@ import torch
 import pickle as pk
 import pandas as pd
 import numpy as np
+import os
 from tft_torch import tft
 from omegaconf import OmegaConf
 torch.set_default_dtype(torch.float32)
 
 from . import nn
 from . import util
+
+#get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
 #date_to_index, scale_density, util.get_normalized_time_series, normalize_time_series_data
 #here we load the necessary scalers:
+# Construct the path to the data file
 scalers_dict={}
 keys_time_series_data=['omni_indices', 'omni_solar_wind', 'omni_magnetic_field', 'soho', 'msise']
 for key in keys_time_series_data:
-    with open(f"scaler_{key}.pk","rb") as f:
+    with open(os.path.join(script_dir,f"scaler_{key}.pk"),"rb") as f:
         scalers_dict[key]=pk.load(f)
 
-with open("normalization_dict_ts.pk", "rb") as f:
+with open(os.path.join(script_dir,"normalization_dict_ts.pk"), "rb") as f:
     _normalization_dict_ts=pk.load(f)
 
-with open("normalization_dict.pk", "rb") as f:
+with open(os.path.join(script_dir,"normalization_dict.pk"), "rb") as f:
     _normalization_dict=pk.load(f)
 
 #we also load the data for the space-weather indices, in case needed:
-df_sw=pd.read_csv('../data/merged_datasets/satellites_data_subsampled_1d.csv')
+df_sw=pd.read_csv(os.path.join(script_dir,'../data/merged_datasets/satellites_data_subsampled_1d.csv'))
 
 #default values
 _omni_indices={'lag':10000,'resolution': 100, 'num_features': 6}
@@ -31,7 +37,6 @@ _omni_solar_wind={'lag':10000,'resolution': 100, 'num_features': 4}
 _omni_magnetic_field={'lag':10000,'resolution': 100, 'num_features': 3}
 _soho={'lag':10000,'resolution': 100, 'num_features': 2}
 _msise={'lag':10000,'resolution': 100, 'num_features': 10}
-
 
 #TFT parameters:
 num_historical_numeric=0

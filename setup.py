@@ -35,7 +35,7 @@ setup(
     author_email='giacomo.acciarini@gmail.com',
     packages=find_packages(),
     url='https://github.com/spaceml-org/karman',
-    install_requires=['numpy', 'torch', 'pyshtools','matplotlib','scikit-learn','pandas','tables','tqdm','pyfiglet','termcolor','wandb','cartopy','pyatmos','spaceweather','nrlmsise00','tft-torch'],
+    install_requires=['numpy', 'torch', 'pyshtools','matplotlib','scikit-learn','pandas','tables','tqdm','pyfiglet>=0.8.0','termcolor','wandb','cartopy','pyatmos','spaceweather','nrlmsise00','tft-torch'],
     extras_require={'dev': ['pytest', 'coverage', 'pytest-xdist','netcdf4','cftime','flake8']},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)', 'Programming Language :: Python :: 3']
 )

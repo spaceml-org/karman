@@ -75,8 +75,8 @@ html_logo = "_static/Karman_logo_white.png"
 
 html_theme_options = {
     "repository_url": "https://github.com/spaceml-org/karman",
-    "repository_branch": "master",
-    "path_to_docs": "doc",
+    "repository_branch": "main",
+    "path_to_docs": "docs",
     "use_repository_button": True,
     "use_issues_button": True,
     "launch_buttons": {

@@ -38,9 +38,14 @@ release = karman.__version__
 # ones.
 extensions = ["myst_nb", "sphinx.ext.autodoc", "sphinx.ext.doctest", "sphinx.ext.intersphinx", "sphinx.ext.autosummary","sphinx.ext.napoleon"]
 
+# build the templated autosummary files
 autosummary_generate = True
+autosummary_imported_members = True
 napoleon_google_docstring = True
-napoleon_numpy_docstring = False
+numpydoc_show_class_members = False
+panels_add_bootstrap_css = False
+
+autosectionlabel_prefix_document = True
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),

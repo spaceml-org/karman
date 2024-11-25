@@ -36,7 +36,8 @@ Currently, the Karman software supports several input data from different source
 * NRLMSISE-00 thermospheric density empirical models inputs (and corresponding predicted density).
 * Geomagnetic input data from [NASA's OMNIWeb high resolution data](https://omniweb.gsfc.nasa.gov/form/omni_min.html).
 * Solar irradiance proxies commonly used in empirical thermospheric density models (i.e., F10.7, S10.7, M10.7, Y10.7).
-* 
+* EUV Irradiance data from SOHO mission (from [LASP](https://lasp.colorado.edu/eve/data_access/eve_data/lasp_soho_sem_data/) website)
+* EUV Irradiance data from GOES mission (from [NOAA](https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/science/euvs/) website)
 
 We have dedicated tutorials and scripts to download and prepare each of these data sources for ML ingestion.
 

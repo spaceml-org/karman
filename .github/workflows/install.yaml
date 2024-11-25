@@ -22,7 +22,7 @@ jobs:
       # The agent will be running in all steps after this, so it
       # should be one of the first.
       - name: Set up Python 3.8
-        uses: actions/setup-python@master
+        uses: actions/setup-python@v4 
         with:
           python-version: 3.8
       - name: Install System Dependencies

@@ -5,7 +5,7 @@ Karman - Data Driven Thermospheric Density Nowcast and Forecast with Machine Lea
 <br />
 <p align="center">
   <a href="https://spaceml-org.github.io/karman/">
-    <img src="docs/_static/Karman_logo_white.png" alt="Logo" width="280">
+    <img src="docs/_static/Karman_logo_white.png" alt="Logo" width="380">
   </a>
   <p align="center">
     Karman

@@ -42,8 +42,8 @@ jobs:
           cd doc
           make html linkcheck      
       
-#      - name: Upload to github pages 🚀
-#        if: ${{ github.event_name == 'push' }}
-#        uses: JamesIves/github-pages-deploy-action@v4
-#        with:
-#          folder: doc/_build/html # The folder the action should deploy.
+      - name: Upload to github pages 🚀
+        if: ${{ github.event_name == 'push' }}
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: doc/_build/html # The folder the action should deploy.

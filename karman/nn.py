@@ -1,192 +1,54 @@
 import torch
 from torch import nn
+import torch.nn.init as init
 
-class FeedForward(nn.Module):
-    def __init__(self, dropout=0., hidden_size=500, out_features=100):
-        super(FeedForward, self).__init__()
-        self.name = 'FeedForward'
-        self.fc = nn.Sequential(
-            nn.Flatten(),
+class SimpleNetwork(nn.Module):
+    """Generic fully connected MLP with adjustable depth."""
 
-            nn.LazyLinear(hidden_size),
-            nn.Dropout(p=dropout),
-            nn.LeakyReLU(),
+    def __init__(
+        self,
+        input_dim,
+        hidden_layer_dims=[256, 256, 256],
+        output_dim=1,
+        act=nn.LeakyReLU(negative_slope=0.01),
+        dropout=0.0,
+    ):
+        """
+        Args:
+            - input_dim (int): input dimension
+            - hid_dims (List[int]): list of hidden layer dimensions
+            - output_dim (int): output dimension
+            - non_linearity (str): type of non-linearity in hidden layers
+            - dropout (float): dropout rate (applied each layer)
+        """
+        super(SimpleNetwork, self).__init__()
 
-            nn.LazyLinear(hidden_size),
-            nn.Dropout(p=dropout),
-            nn.LeakyReLU(),
+        dims = [input_dim] + hidden_layer_dims
 
-            nn.LazyLinear(hidden_size),
-            nn.Dropout(p=dropout),
-            nn.LeakyReLU(),
-
-            nn.LazyLinear(hidden_size),
-            nn.Dropout(p=dropout),
-            nn.LeakyReLU(),
-
-            nn.LazyLinear(out_features),
-            nn.LeakyReLU(),
+        self.dropout = nn.Dropout(p=dropout)
+        self.fcs = nn.ModuleList(
+            [nn.Linear(dims[i], dims[i + 1]) for i in range(len(dims) - 1)]
         )
 
-    def forward(self, x):
-        x = self.fc(x)
-        return x
+        self.act = act
+        self.acts = nn.ModuleList([self.act for _ in range(len(dims) - 1)])
 
-
-class FullFeatureFeedForward(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(FullFeatureFeedForward, self).__init__()
-        self.dropout = dropout
-        self.name = 'Full Feature Feed Forward'
-        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_omni = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_fism2_daily = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_fism2_flare = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
+        self.fc_out = nn.Linear(dims[-1], output_dim)
 
     def forward(self, x):
-        thermo_features = self.fc_thermo(x['instantaneous_features'])
-        omni_features = self.fc_omni(x['omni'])
-        fism2_daily_features = self.fc_fism2_daily(x['fism2_daily_stan_bands'])
-        fism2_flare_features = self.fc_fism2_flare(x['fism2_flare_stan_bands'])
-        concatenated_features = torch.cat([
-            thermo_features,
-            omni_features,
-            fism2_daily_features,
-            fism2_flare_features
-        ], dim=1)
-        return self.regressor(concatenated_features)
+        for fc, act in zip(self.fcs, self.acts):
+            x = act(fc(self.dropout(x)))
+        # non activated final layer
+        return self.fc_out(x)
 
-class NoFism2FlareAndDailyFeedForward(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(NoFism2FlareAndDailyFeedForward, self).__init__()
-        self.dropout = dropout
-        self.name = 'Full Feature Feed Forward'
-        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_omni = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
-
-    def forward(self, x):
-        thermo_features = self.fc_thermo(x['instantaneous_features'])
-        omni_features = self.fc_omni(x['omni'])
-        concatenated_features = torch.cat([
-            thermo_features,
-            omni_features
-        ], dim=1)
-        return self.regressor(concatenated_features)
-
-class NoFism2FlareAndDailyAndOmniFeedForward(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(NoFism2FlareAndDailyAndOmniFeedForward, self).__init__()
-        self.dropout = dropout
-        self.name = 'No FISM2 Flare, Daily and No Omni Feed Forward'
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
-
-    def forward(self, x):
-        return self.regressor(x['instantaneous_features'])
-
-
-class NoFism2FlareFeedForward(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(NoFism2FlareFeedForward, self).__init__()
-        self.dropout = dropout
-        self.name = 'Full Feature Feed Forward'
-        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_omni = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_fism2_daily = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
-
-    def forward(self, x):
-        thermo_features = self.fc_thermo(x['instantaneous_features'])
-        omni_features = self.fc_omni(x['omni'])
-        fism2_daily_features = self.fc_fism2_daily(x['fism2_daily_stan_bands'])
-        concatenated_features = torch.cat([
-            thermo_features,
-            omni_features,
-            fism2_daily_features
-        ], dim=1)
-        return self.regressor(concatenated_features)
-
-class NoFism2DailyFeedForward(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(NoFism2DailyFeedForward, self).__init__()
-        self.dropout = dropout
-        self.name = 'Full Feature Feed Forward'
-        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_omni = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_fism2_flare = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
-
-    def forward(self, x):
-        thermo_features = self.fc_thermo(x['instantaneous_features'])
-        omni_features = self.fc_omni(x['omni'])
-        fism2_flare_features = self.fc_fism2_flare(x['fism2_flare_stan_bands'])
-        concatenated_features = torch.cat([
-            thermo_features,
-            omni_features,
-            fism2_flare_features
-        ], dim=1)
-        return self.regressor(concatenated_features)
-
-class NoOmniFeedForward(nn.Module):
-    def __init__(self, dropout=0.0, hidden_size=200, out_features=50):
-        super(NoOmniFeedForward, self).__init__()
-        self.dropout = dropout
-        self.name = 'Full Feature Feed Forward'
-        self.fc_thermo = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_fism2_daily = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.fc_fism2_flare = FeedForward(dropout=dropout, hidden_size=hidden_size, out_features=out_features)
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
-
-    def forward(self, x):
-        thermo_features = self.fc_thermo(x['instantaneous_features'])
-        fism2_daily_features = self.fc_fism2_daily(x['fism2_daily_stan_bands'])
-        fism2_flare_features = self.fc_fism2_flare(x['fism2_flare_stan_bands'])
-        concatenated_features = torch.cat([
-            thermo_features,
-            fism2_daily_features,
-            fism2_flare_features
-        ], dim=1)
-        return self.regressor(concatenated_features)
-
-class FFNN(nn.Module):
-    def __init__(self, num_features, dropout=0.):
-        super(FFNN, self).__init__()
-        self.name = 'Four Layer FFNN'
-        self.num_features = num_features
-        # This is for backwards compatibility reasons.
-        # Some previous models dont expect a dropout layer
-        # and so the code breaks if a model isnt expecting
-        # then when loaded up at a later date.
-        self.fc1 = nn.Sequential(
-            nn.Linear(num_features, 100),
-            nn.Dropout(p=dropout),
-            nn.LeakyReLU(),
-            nn.Linear(100, 100),
-            nn.Dropout(p=dropout),
-            nn.LeakyReLU(),
-            nn.Linear(100, 100),
-            nn.LeakyReLU(),
-            nn.Linear(100, 1),
-        )
-
-    def forward(self, x):
-        x = self.fc1(x)
-        return x
-
-class FeedForwardDensityPredictor(nn.Module):
-    def __init__(self, num_features, dropout=0.):
-        super(FeedForwardDensityPredictor, self).__init__()
-        self.ffnn = FFNN(num_features, dropout)
-
-    def forward(self, batch):
-        x = self.ffnn(batch['static_features'])
-        return x
-
-
-class LSTMPredictor(nn.Module):
-    def __init__(self, input_size, output_size=10, lstm_size=190, lstm_depth=2, dropout=0.2):
-        super().__init__()
+class LSTMModel(nn.Module):
+    def __init__(self, 
+                 input_size, 
+                 output_size=1, 
+                 lstm_size=190, 
+                 lstm_depth=2, 
+                 dropout=0.0):
+        super(LSTMModel,self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.lstm_size = lstm_size
@@ -194,169 +56,122 @@ class LSTMPredictor(nn.Module):
         self.dropout = dropout
 
         self.lstm = nn.LSTM(
-            input_size=self.input_size,
-            hidden_size=self.lstm_size,
-            num_layers=lstm_depth,
-            batch_first=True,
-            dropout=dropout
-        )
+                            input_size=self.input_size,
+                            hidden_size=self.lstm_size,
+                            num_layers=lstm_depth,
+                            batch_first=True,
+                            dropout=dropout
+                        )
         self.fc1 = nn.Linear(lstm_size, self.output_size)
 
     def forward(self, x):
-        # Reset the hidden state
-        h0 = torch.zeros(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
-        c0 = torch.zeros(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
-        x, _ = self.lstm(x, (h0, c0))
+        # Reset the hidden state -> Not needed, it's done by default
+        #h0 = torch.zeros(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
+        #c0 = torch.zeros(self.lstm_depth, x.size(0), self.lstm_size).to(x.device)
+        x, _ = self.lstm(x)#, (h0, c0))
         # Just use the final item in the sequence.
         x = self.fc1(x[:, -1,:])
         return x
 
-class WindowCNN(nn.Module):
-    def __init__(self, outsize=100):
-        super().__init__()
-        self.outsize = outsize
-
-        self.cnn = nn.Sequential(
-            nn.Conv2d(1, 5, 3, stride=1),
-            nn.Conv2d(5, 5, 3, stride=1),
-            nn.LeakyReLU(),
-            nn.Conv2d(5, 5, 3, stride=1),
-            nn.Conv2d(5, 5, 3, stride=1),
-            nn.LeakyReLU(),
-            nn.Flatten()
-        )
-
-        self.fc = nn.LazyLinear(self.outsize)
-
-    def forward(self, x):
-        x = x.unsqueeze(1)
-        cnn_features = self.cnn(x)
-        return self.fc(cnn_features)
-
-class OmniDensityPredictor(nn.Module):
+class LSTMDensityPredictor(nn.Module):
     def __init__(self,
-                 input_size_thermo,
-                 input_size_omni,
+                 input_size_static,
+                 input_size_timedependent,
+                 ffnn_hidden_layer_dims=[256, 256, 256],
                  lstm_depth=2,
-                 output_size_omni=20,
+                 lstm_size=190,
+                 output_size_timedependent=20,
                  dropout_lstm=0.,
                  dropout_ffnn=0.):
-        super().__init__()
-        self.model_lstm_omni=LSTMPredictor(input_size=input_size_omni, output_size=output_size_omni, dropout=dropout_lstm, lstm_depth=lstm_depth)
-        self.ffnn=FFNN(num_features=input_size_thermo+output_size_omni, dropout=dropout_ffnn)
-        self.dropout=dropout_lstm
+        super(LSTMDensityPredictor,self).__init__()
+        self.model_lstm_omni=LSTMModel(input_size=input_size_timedependent, 
+                                       output_size=output_size_timedependent, 
+                                       dropout=dropout_lstm, 
+                                       lstm_size=lstm_size,
+                                       lstm_depth=lstm_depth)
+        self.ffnn=SimpleNetwork(input_dim=input_size_static+output_size_timedependent, 
+                                       hidden_layer_dims=ffnn_hidden_layer_dims,
+                                       output_dim=1,
+                                       dropout=dropout_ffnn)
 
     def forward(self, batch):
-        omni_features = self.model_lstm_omni(batch['omni'])
-
-        concatenated_features = torch.cat([
-            batch['instantaneous_features'],
-            omni_features
-        ], dim=1)
-        density = self.ffnn(concatenated_features)
-        return density
-
-class Fism2DailyDensityPredictor(nn.Module):
-    def __init__(self,
-                 input_size_thermo,
-                 input_size_fism2_daily,
-                 output_size_fism2_daily=20,
-                 lstm_depth=2,
-                 dropout_lstm=0.,
-                 dropout_ffnn=0.):
-        super().__init__()
-        self.model_lstm_fism2_daily=LSTMPredictor(input_size=input_size_fism2_daily, output_size=output_size_fism2_daily, lstm_depth=lstm_depth, dropout=dropout_lstm)
-        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_daily, dropout=dropout_ffnn)
-        self.dropout=dropout_lstm
-
-    def forward(self, batch):
-        flare_daily_features = self.model_lstm_fism2_daily(batch['fism2_daily_stan_bands'])
-
-        concatenated_features = torch.cat([
-            batch['instantaneous_features'],
-            flare_daily_features,
-        ], dim=1)
-        density = self.ffnn(concatenated_features)
-        return density
-
-class Fism2FlareDensityPredictor(nn.Module):
-    def __init__(self,
-                 input_size_thermo,
-                 input_size_fism2_flare,
-                 output_size_fism2_flare=20,
-                 lstm_depth=2,
-                 dropout_lstm=0.,
-                 dropout_ffnn=0.):
-        super().__init__()
-        self.model_lstm_fism2_flare=LSTMPredictor(input_size=input_size_fism2_flare, output_size=output_size_fism2_flare, lstm_depth=lstm_depth, dropout=dropout_lstm)
-        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare, dropout=dropout_ffnn)
-        self.dropout=dropout_lstm
-
-    def forward(self, batch):
-        flare_features = self.model_lstm_fism2_flare(batch['fism2_daily_stan_bands'])
-
-        concatenated_features = torch.cat([
-            batch['instantaneous_features'],
-            flare_features,
-        ], dim=1)
-        density = self.ffnn(concatenated_features)
-        return density
-
-class FullFeatureDensityPredictor(nn.Module):
-    def __init__(self,
-                 input_size_thermo,
-                 input_size_fism2_flare,
-                 input_size_fism2_daily,
-                 input_size_omni,
-                 output_size_fism2_flare=20,
-                 output_size_fism2_daily=20,
-                 output_size_omni=20,
-                 dropout_lstm=0.,
-                 dropout_ffnn=0.):
-        super().__init__()
-        self.model_lstm_fism2_flare=LSTMPredictor(input_size=input_size_fism2_flare, output_size=output_size_fism2_flare, dropout=dropout_lstm)
-        self.model_lstm_fism2_daily=LSTMPredictor(input_size=input_size_fism2_daily, output_size=output_size_fism2_daily, dropout=dropout_lstm)
-        self.model_lstm_omni=LSTMPredictor(input_size=input_size_omni, output_size=output_size_omni, dropout=dropout_lstm)
-        self.ffnn=FFNN(num_features=input_size_thermo+output_size_fism2_flare+output_size_fism2_daily+output_size_omni, dropout=dropout_ffnn)
-
-    def forward(self, batch):
-        flare_features = self.model_lstm_fism2_flare(batch['fism2_flare_stan_bands'])
-        omni_features = self.model_lstm_omni(batch['omni'])
-        flare_daily_features = self.model_lstm_fism2_daily(batch['fism2_daily_stan_bands'])
-
-        concatenated_features = torch.cat([
-            batch['instantaneous_features'],
-            flare_features,
-            flare_daily_features,
-            omni_features
-        ], dim=1)
+        #let's pass the time dependent features through an LSTM
+        timedependent_features = self.model_lstm_omni(batch['historical_ts_numeric'])
+        #and concatenate the output with the static features and pass it through a feedforward neural network:
+        concatenated_features = torch.cat([batch['static_feats_numeric'],timedependent_features], dim=1)
         density = self.ffnn(concatenated_features)
         return density
 
 
-class SimpleNN(nn.Module):
-    def __init__(self, hidden_size=200, out_features=50):
-        super(SimpleNN, self).__init__()
-        self.name = 'Simple Linear Network'
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
-
-    def forward(self, x):
-        return self.regressor(x['instantaneous_features'])
-
-
-class AddOmni(nn.Module):
-    def __init__(self, hidden_size=200, out_features=50):
-        super(AddOmni, self).__init__()
-        self.name = 'Model that combines instantaneous features and OMNI data'
-        self.fc_thermo = FeedForward(hidden_size=hidden_size, out_features=out_features)
-        self.fc_omni = FeedForward(hidden_size=hidden_size, out_features=out_features)
-        self.regressor = FeedForward(hidden_size=hidden_size, out_features=1)
-
-    def forward(self, x):
-        thermo_features = self.fc_thermo(x['instantaneous_features'])
-        omni_features = self.fc_omni(x['omni'])
-        concatenated_features = torch.cat([
-            thermo_features,
-            omni_features
-        ], dim=1)
-        return self.regressor(concatenated_features)
+def weight_init(m):
+    """
+    Usage:
+        model = Model()
+        model.apply(weight_init)
+    """
+    if isinstance(m, nn.Conv1d):
+        init.normal_(m.weight.data)
+        if m.bias is not None:
+            init.normal_(m.bias.data)
+    elif isinstance(m, nn.Conv2d):
+        init.xavier_normal_(m.weight.data)
+        if m.bias is not None:
+            init.normal_(m.bias.data)
+    elif isinstance(m, nn.Conv3d):
+        init.xavier_normal_(m.weight.data)
+        if m.bias is not None:
+            init.normal_(m.bias.data)
+    elif isinstance(m, nn.ConvTranspose1d):
+        init.normal_(m.weight.data)
+        if m.bias is not None:
+            init.normal_(m.bias.data)
+    elif isinstance(m, nn.ConvTranspose2d):
+        init.xavier_normal_(m.weight.data)
+        if m.bias is not None:
+            init.normal_(m.bias.data)
+    elif isinstance(m, nn.ConvTranspose3d):
+        init.xavier_normal_(m.weight.data)
+        if m.bias is not None:
+            init.normal_(m.bias.data)
+    elif isinstance(m, nn.BatchNorm1d):
+        init.normal_(m.weight.data, mean=1, std=0.02)
+        init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        init.normal_(m.weight.data, mean=1, std=0.02)
+        init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.BatchNorm3d):
+        init.normal_(m.weight.data, mean=1, std=0.02)
+        init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.Linear):
+        init.xavier_normal_(m.weight.data)
+        if m.bias is not None:
+            init.normal_(m.bias.data)
+    elif isinstance(m, nn.LSTM):
+        for param in m.parameters():
+            if len(param.shape) >= 2:
+                init.orthogonal_(param.data)
+            else:
+                init.normal_(param.data)
+    elif isinstance(m, nn.LSTMCell):
+        for param in m.parameters():
+            if len(param.shape) >= 2:
+                init.orthogonal_(param.data)
+            else:
+                init.normal_(param.data)
+    elif isinstance(m, nn.GRU):
+        for param in m.parameters():
+            if len(param.shape) >= 2:
+                init.orthogonal_(param.data)
+            else:
+                init.normal_(param.data)
+        for names in m._all_weights:
+            for name in filter(lambda n: "bias" in n, names):
+                bias = getattr(m, name)
+                n = bias.size(0)
+                bias.data[: n // 3].fill_(-1.0)
+    elif isinstance(m, nn.GRUCell):
+        for param in m.parameters():
+            if len(param.shape) >= 2:
+                init.orthogonal_(param.data)
+            else:
+                init.normal_(param.data)

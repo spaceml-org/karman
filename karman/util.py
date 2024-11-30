@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import math
 from . import nn
-from .density_models import scalers_dict, _normalization_dict, _normalization_dict_ts, df_sw, _omni_indices, _omni_magnetic_field, _omni_solar_wind, _soho, _msise
+from .density_models import scalers_dict, _normalization_dict, _normalization_dict_ts
 
 def exponential_atmosphere(altitudes):    
     """
@@ -81,11 +81,7 @@ def get_static_data(dates,
                     altitudes,
                     longitudes,
                     latitudes,
-                    df_thermo=None):
-    if normalization_dict is None:
-        normalization_dict=_normalization_dict_ts
-    if df_thermo is None:
-        df_thermo=df_sw
+                    df_thermo):
     dates=pd.to_datetime(dates)
     sw=find_sw_from_thermo(dates,df_thermo)
 
@@ -132,11 +128,11 @@ def get_static_data(dates,
     return static_features
 
 def prepare_ts_data(data,
-                                start_date,
-                                resolution,
-                                lag,
-                                dates
-                               ):
+                    start_date,
+                    resolution,
+                    lag,
+                    dates
+                    ):
     """
     This function takes the time series normalized torch tensor and returns them in a three-dimensional tensor format,
     already compatible for time series forecasting.
@@ -169,11 +165,11 @@ def prepare_ts_data(data,
     
 def get_ts_data( ts_data_normalized,   
                  dates,
-                 omni_indices=None,
-                 omni_magnetic_field=None,
-                 omni_solar_wind=None,
-                 soho=None,
-                 msise=None):
+                 omni_indices,
+                 omni_magnetic_field,
+                 omni_solar_wind,
+                 soho,
+                 msise):
     """
     
         - omni_indices (`dict`): dictionary containing the parameters for the omni indices
@@ -183,17 +179,6 @@ def get_ts_data( ts_data_normalized,
         - msise (`dict`): dictionary containing the parameters for the NRLMSISE-00 data
 
     """
-    if omni_indices is None:
-        omni_indices = _omni_indices  # Assign default here
-    if omni_magnetic_field is None:
-        omni_magnetic_field = _omni_magnetic_field
-    if omni_solar_wind is None:
-        omni_solar_wind = _omni_solar_wind
-    if soho is None:
-        soho = _soho
-    if msise is None:
-        msise = _msise
-
     historical_ts_numeric=[]
     future_ts_numeric=[]
     #NOTE: historical_ts_numeric has shape: n_elements x n_time_steps x n_features

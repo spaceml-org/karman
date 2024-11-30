@@ -181,7 +181,12 @@ def forecasting_model(dates,
                                             latitudes=latitudes)
 
     historical_ts_numeric, future_ts_numeric = util.get_ts_data(ts_data_normalized,
-                                                                 dates)
+                                                                 dates,
+                                                                 omni_indices=_omni_indices,
+                                                                 omni_solar_wind=_omni_solar_wind,
+                                                                 omni_magnetic_field=_omni_magnetic_field,
+                                                                 soho=_soho,
+                                                                 msise=_msise,)
     inputs={}
     inputs['static_feats_numeric']=static_features.to(device)
     inputs['future_ts_numeric']=future_ts_numeric.to(device)

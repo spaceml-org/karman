@@ -40,11 +40,11 @@ jobs:
           pip install sphinx
           pip install sphinx-book-theme
           pip install myst-nb
-          cd doc
+          cd docs
           make html linkcheck      
       
       - name: Upload to github pages 🚀
         if: ${{ github.event_name == 'push' }}
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: doc/_build/html # The folder the action should deploy.
+          folder: docs/_build/html # The folder the action should deploy.

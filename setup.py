@@ -2,7 +2,7 @@ import os
 import sys
 from setuptools import setup, find_packages
 PACKAGE_NAME = 'karman'
-MINIMUM_PYTHON_VERSION = 3, 8
+MINIMUM_PYTHON_VERSION = 3, 9
 
 with open('README.md', 'r') as f:
     long_description = f.read()
@@ -39,4 +39,7 @@ setup(
     extras_require={'dev': ['pytest', 'coverage', 'pytest-xdist','netcdf4','cftime','flake8']},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)', 'Programming Language :: Python :: 3'],
     include_package_data=True,
+    package_data={
+        "karman": ["*.pk", "*.csv"],  # Include all CSV files in the karman directory
+    },
 )

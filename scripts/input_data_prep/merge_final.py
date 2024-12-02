@@ -23,10 +23,9 @@ def merge_final():
 
     parser = argparse.ArgumentParser(description='Preparing merged final data used for training', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--input_dir_sw_and_tu_delft', type=str, default='../../data/satellites_data_w_sw_no_msise', help='Input directory of SW and TU Delft merged data')
+    parser.add_argument('--input_dir_sw_and_tu_delft', type=str, default='../../data/merged_datasets', help='Input directory of SW and TU Delft merged data')
     parser.add_argument('--input_dir_nrlmsise00', type=str, default='../../data/nrlmsise00_data', help='Input directory of NRLMSISE-00 data')
     parser.add_argument('--output_dir', type=str, default='../../data/merged_datasets', help='Output directory of processed data')
-
     opt = parser.parse_args()
 
     #create output directory if it does not exist
@@ -35,14 +34,6 @@ def merge_final():
     print('loading data w sw and w/o msise (can take a few minutes)')
     df_merged=pd.read_csv(os.path.join(opt.input_dir_sw_and_tu_delft,'satellites_data_w_sw_no_msise.csv'))
     print('.. loaded')
-
-    df_nrlmsise00=pd.read_csv(os.path.join(opt.input_dir_nrlmsise00,'densities_msise.csv'))
-    df_merged['NRLMSISE00__thermospheric_density__[kg/m**3]']=df_nrlmsise00.values.flatten()
-    df_merged.reset_index(drop=True,inplace=True)
-    df_merged.sort_values(by='all__dates_datetime__', inplace=True)
-    print('msise merged to data, let s save it to csv -> satellites_data_w_sw.csv')
-    df_merged.to_csv(os.path.join(opt.output_dir,'satellites_data_w_sw.csv'),index=False)
-    print('done')
 
     #subset of 1% of the data (taken randomly):
     print('let s now subsample the dataset to 1% (randomly), and store it:')

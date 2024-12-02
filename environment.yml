@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - pytorch
 dependencies:
-  - python<=3.12
+  - python
   - pip
   - matplotlib
   - jupyter

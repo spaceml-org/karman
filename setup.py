@@ -2,8 +2,10 @@ import os
 import sys
 from setuptools import setup, find_packages
 PACKAGE_NAME = 'karman'
-MINIMUM_PYTHON_VERSION = 3, 6
+MINIMUM_PYTHON_VERSION = 3, 8
 
+with open('README.md', 'r') as f:
+    long_description = f.read()
 
 def check_python_version():
     """Exit when the Python version is too low."""
@@ -26,11 +28,14 @@ check_python_version()
 setup(
     name='karman',
     version=read_package_variable('__version__'),
-    description='Karman',
-    author='Karman Team',
-    #author_email='giacomo.acciarini@gmail.com',
+    description='Karman: Data Driven Thermospheric Density Modeling',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    author='',
+    author_email='giacomo.acciarini@gmail.com',
     packages=find_packages(),
-    install_requires=['numpy','pandas','torch','pyshtools', 'pyfiglet>=0.8.0','tqdm','termcolor','tables','cartopy', 'scikit-learn'],
-    extras_require={'dev': ['pytest', 'pyatmos', 'coverage', 'pytest-xdist', 'flake8']},
+    url='https://github.com/spaceml-org/karman',
+    install_requires=['numpy', 'torch','matplotlib','scikit-learn','pandas','tables','tqdm','pyfiglet>=0.8.0','termcolor','wandb','pyatmos','spaceweather','nrlmsise00','tft-torch'],
+    extras_require={'dev': ['pytest', 'coverage', 'pytest-xdist','netcdf4','cftime','flake8']},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)', 'Programming Language :: Python :: 3']
 )

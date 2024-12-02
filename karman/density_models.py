@@ -9,6 +9,7 @@ torch.set_default_dtype(torch.float32)
 
 from . import nn
 from . import util
+from importlib.resources import files
 
 #get the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,17 +20,19 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 scalers_dict={}
 keys_time_series_data=['omni_indices', 'omni_solar_wind', 'omni_magnetic_field', 'soho', 'msise']
 for key in keys_time_series_data:
-    with open(os.path.join(script_dir,f"scaler_{key}.pk"),"rb") as f:
-        scalers_dict[key]=pk.load(f)
-
-with open(os.path.join(script_dir,"normalization_dict_ts.pk"), "rb") as f:
+    with files("karman").joinpath(f"scaler_{key}.pk").open("rb") as f:
+        scalers_dict[key] = pk.load(f)
+with files("karman").joinpath("normalization_dict_ts.pk").open("rb") as f:
     _normalization_dict_ts=pk.load(f)
 
-with open(os.path.join(script_dir,"normalization_dict.pk"), "rb") as f:
+with files("karman").joinpath("normalization_dict.pk").open("rb") as f:
     _normalization_dict=pk.load(f)
 
 #we also load the data for the space-weather indices, in case needed:
-df_sw=pd.read_csv(os.path.join(script_dir,'../data/merged_datasets/satellites_data_subsampled_1d.csv'))
+file_path = files("karman").joinpath("satellites_data_subsampled_1d.csv")
+
+#file_path = files("karman").joinpath("data/merged_datasets/satellites_data_subsampled_1d.csv")
+df_sw=pd.read_csv(file_path)
 
 class ForecastingModel():
     def __init__(self,

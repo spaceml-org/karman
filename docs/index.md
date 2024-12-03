@@ -25,17 +25,5 @@ credits
 :caption: Contents
 
 tutorials
-```
-
-```{toctree}
-:maxdepth: 1
-:caption: API documentation
-
-karman package <_autosummary/karman>
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
+api
 ```

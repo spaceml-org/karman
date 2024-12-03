@@ -1,4 +1,4 @@
-[![Install package and run tests](https://github.com/spaceml-org/karman/actions/workflows/install.yaml/badge.svg)](https://github.com/spaceml-org/karman/actions/workflows/install.yaml) 
+[![Install package](https://github.com/spaceml-org/karman/actions/workflows/build.yml/badge.svg)](https://github.com/spaceml-org/karman/actions/workflows/build.yml) 
 
 Karman - Data Driven Thermospheric Density Nowcast and Forecast with Machine Learning
 <!-- PROJECT LOGO -->
@@ -87,7 +87,7 @@ If you would like to learn more about or cite the techniques Karman uses, please
 }
 ```
 
-* Shreshth Malik, James Walsh, Giacomo Acciarini, Thomas Berger, At{\i}l{\i}m G{\"u}ne{\c{s}}} Baydin. 2023. ["High-Cadence Thermospheric Density Estimation enabled by Machine Learning on Solar Imagery"](https://ml4physicalsciences.github.io/2023/files/NeurIPS_ML4PS_2023_237.pdf). In NeurIPS, Machine Learning and the Physical Sciences Workshop.
+* Shreshth Malik, James Walsh, Giacomo Acciarini, Thomas Berger, Atılım Güneş Baydin. 2023. ["High-Cadence Thermospheric Density Estimation enabled by Machine Learning on Solar Imagery"](https://ml4physicalsciences.github.io/2023/files/NeurIPS_ML4PS_2023_237.pdf). In NeurIPS, Machine Learning and the Physical Sciences Workshop.
 
 ```bibtex
 @article{malik2023high,

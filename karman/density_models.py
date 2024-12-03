@@ -11,12 +11,7 @@ from . import nn
 from . import util
 from importlib.resources import files
 
-#get the directory of the current script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-#date_to_index, scale_density, util.get_normalized_time_series, normalize_time_series_data
-#here we load the necessary scalers:
-# Construct the path to the data file
+#let's load the necessary scalers
 scalers_dict={}
 keys_time_series_data=['omni_indices', 'omni_solar_wind', 'omni_magnetic_field', 'soho', 'msise']
 for key in keys_time_series_data:
@@ -30,8 +25,6 @@ with files("karman").joinpath("normalization_dict.pk").open("rb") as f:
 
 #we also load the data for the space-weather indices, in case needed:
 file_path = files("karman").joinpath("satellites_data_subsampled_1d.csv")
-
-#file_path = files("karman").joinpath("data/merged_datasets/satellites_data_subsampled_1d.csv")
 df_sw=pd.read_csv(file_path)
 
 class ForecastingModel():

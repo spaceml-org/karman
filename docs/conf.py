@@ -108,3 +108,5 @@ myst_enable_extensions = [
     "dollarmath",
     "html_image",
 ]
+
+html_baseurl = "https://spaceml-org.github.io/karman/"

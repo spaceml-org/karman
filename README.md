@@ -105,3 +105,4 @@ The authors would like to ackowledge the support and precious feedback of severa
 
 ## Contact:
 * `giacomo.acciarini@gmail.com`
+* `james@walsh.dev`

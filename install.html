@@ -365,6 +365,16 @@
 <span id="installation-deps"></span><h2>Installation from source<a class="headerlink" href="#installation-from-source" title="Link to this heading">#</a></h2>
 <p>Using <code class="docutils literal notranslate"><span class="pre">git</span></code>:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spaceml-org/karman
+<span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>karman
+</pre></div>
+</div>
+<p>And then either via <cite>pip</cite>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<p>or via <cite>conda</cite> / <cite>mamba</cite>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>mamba<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
+<span class="gp">$ </span>mamba<span class="w"> </span>activate<span class="w"> </span>karman
 </pre></div>
 </div>
 <p>We follow the usual PR-based development workflow, thus karman’s <code class="docutils literal notranslate"><span class="pre">main</span></code>

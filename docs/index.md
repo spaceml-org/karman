@@ -9,7 +9,7 @@ Karman Documentation
 
 The main developers are [Giacomo Acciarini](https://www.esa.int/gsp/ACT/team/giacomo_acciarini/), [James Walsh](https://walsh.dev/).
 
-Contact info: giacomo.acciarini@gmail.com.
+Contact info: giacomo.acciarini@gmail.com, james@walsh.dev.
 
 ```{toctree}
 :maxdepth: 1

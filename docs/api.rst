@@ -1,12 +1,12 @@
 .. _api:
 
 API
-====
+#######
 
 Karman API
 
-.. autosummary::
-   :toctree: _autosummary
-   :recursive:
+.. currentmodule:: karman
 
-   karman
+.. autosummary::
+   :toctree: _autosummary/
+   :recursive:

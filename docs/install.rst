@@ -13,6 +13,21 @@ Using ``git``:
 .. code-block:: console
 
    $ git clone https://github.com/spaceml-org/karman
+   $ cd karman
+
+And then either via `pip`:
+
+.. code-block:: console
+   
+      $ pip install -e .
+
+or via `conda` / `mamba`:
+
+.. code-block:: console
+
+   $ mamba env create -f environment.yml
+   $ mamba activate karman
+
 
 We follow the usual PR-based development workflow, thus karman's ``main``
 branch is normally kept in a working state.

@@ -1,1 +1,3 @@
-For more information see the published paper at https://doi.org/10.1029/2023SW003652.
+The thermospheric density values shown here are "hindcast" values predicted by the Karman ML model using input data from 100 minutes prior to the date and time selected by the user. The model is valid for altitudes from 200 to 600 km above mean sea level (AMSL).
+
+This visualization is based on work supported by NASA under award NNX13AT27A. For more information see "Improving Thermospheric Density Predictions in Low‐Earth Orbit With Machine Learning" (2024), Acciarini, G., Brown, E., Berger, T., Guhathakurta, L., Parr, J., Bridges, C., Baydin, A., G., Space Weather, 22, 2, https://doi.org/10.1029/2023SW003652.

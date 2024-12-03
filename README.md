@@ -1,4 +1,4 @@
-[![Install package and run tests](https://github.com/spaceml-org/karman/actions/workflows/build.yaml/badge.svg)](https://github.com/spaceml-org/karman/actions/workflows/build.yaml) 
+[![Install package](https://github.com/spaceml-org/karman/actions/workflows/build.yml/badge.svg)](https://github.com/spaceml-org/karman/actions/workflows/build.yml) 
 
 Karman - Data Driven Thermospheric Density Nowcast and Forecast with Machine Learning
 <!-- PROJECT LOGO -->

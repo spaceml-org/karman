@@ -368,47 +368,48 @@
 <p>To download and pre-process the data, we provide a set of scripts, under <cite>karman/scripts/input_data_prep</cite>.</p>
 <p>These are divided into three categories: data downloading, data pre-processing and data merging.</p>
 <p>Note that these procedures can take quite some RAM &amp; CPU time.</p>
-<ul class="simple">
+<ul>
 <li><p>Data downloading:
 for this, you have to go in the <cite>scripts/input_data_prep</cite> and run the following commands (note, if you want to download the data for specific dates, or onto specific directories, you can pass the arguments, e.g. –output_dir path/to/dir, and similar, as preferred):
-<code class="docutils literal notranslate"><span class="pre">`bash</span>
-<span class="pre">python</span> <span class="pre">download_tudelft_thermo.py</span>
-<span class="pre">python</span> <span class="pre">download_sw_indices.py</span>
-<span class="pre">python</span> <span class="pre">download_omniweb.py</span>
-<span class="pre">python</span> <span class="pre">download_goes.py</span>
-<span class="pre">python</span> <span class="pre">download_soho.py</span>
-<span class="pre">`</span></code>
-We also run the NRLMSISE-00 model and collect the output for both the nowcasting and forecasting model (note that
+.. code-block:: console</p>
+<blockquote>
+<div><p>$ python download_tudelft_thermo.py
+$ python download_sw_indices.py
+$ python download_omniweb.py
+$ python download_goes.py
+$ python download_soho.py</p>
+</div></blockquote>
+<p>We also run the NRLMSISE-00 model and collect the output for both the nowcasting and forecasting model (note that
 if you want to change input/output path to directories, or configurations of the parallel processing, you can do so by specifying the arguments):
-<code class="docutils literal notranslate"><span class="pre">`bash</span>
-<span class="pre">python</span> <span class="pre">run_nrlmsise00.py</span>
-<span class="pre">python</span> <span class="pre">run_nrlmsise00_time_series.py</span>
-<span class="pre">`</span></code></p></li>
+.. code-block:: console</p>
+<blockquote>
+<div><p>$ python run_nrlmsise00.py
+$ python run_nrlmsise00_time_series.py</p>
+</div></blockquote>
+</li>
 </ul>
 <p>Once this is done, you can start the pre-processing.</p>
 <ul>
 <li><p>Data pre-processing:
 for this, you have to go in the <cite>scripts/input_data_prep</cite> and run the following commands (note, if you want to pre-process the data onto specific directories, e.g. –output_dir path/to/dir
 you can do so by specifying the argument):
-<code class="docutils literal notranslate"><span class="pre">`bash</span>
-<span class="pre">python</span> <span class="pre">process_tudelft_data.py</span>
-<span class="pre">python</span> <span class="pre">process_sw_indices.py</span>
-<span class="pre">python</span> <span class="pre">process_omniweb_data.py</span>
-<span class="pre">python</span> <span class="pre">process_goes_data.py</span>
-<span class="pre">python</span> <span class="pre">process_soho_data.py</span>
-<span class="pre">`</span></code>
-Finally, you can merge the data.</p>
-<p><code class="docutils literal notranslate"><span class="pre">`bash</span>
-<span class="pre">python</span> <span class="pre">omni_data.py</span>
-<span class="pre">python</span> <span class="pre">merge_sw_and_tudelft_data.py</span>
-<span class="pre">`</span></code></p>
+.. code-block:: console</p>
+<blockquote>
+<div><p>$ python process_tudelft_data.py
+$ python process_sw_indices.py
+$ python process_omniweb_data.py
+$ python process_goes_data.py
+$ python process_soho_data.py</p>
+</div></blockquote>
 </li>
 <li><p>Data merging:
 for this, you have to go in the <cite>scripts/input_data_prep</cite> and run the following commands (note, if you want to merge the data onto specific directories, e.g. –output_dir path/to/dir
-you can do so by specifying the argument):</p>
-<p><code class="docutils literal notranslate"><span class="pre">`bash</span>
-<span class="pre">python</span> <span class="pre">merge_data.py</span>
-<span class="pre">`</span></code></p>
+you can do so by specifying the argument):
+.. code-block:: console</p>
+<blockquote>
+<div><p>$ python merge_omni_data.py
+$ python merge_sw_and_tudelft_data.py</p>
+</div></blockquote>
 </li>
 </ul>
 </section>

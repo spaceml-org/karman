@@ -62,7 +62,6 @@ These tutorials include some basic examples on how to use karman for simple task
   :maxdepth: 1
   
   notebooks/data_analysis.ipynb
-  notebooks/load_models.ipynb
 
 Advanced
 ^^^^^^^^^^^

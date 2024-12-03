@@ -61,7 +61,7 @@ templates_path = ["_templates",".DS_Store"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", ".DS_Store"]
+exclude_patterns = ["_build", ".DS_Store",'jupyter_execute/**/*.ipynb','jupyter_execute/*.ipynb']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -94,7 +94,9 @@ html_theme_options = {
 nb_execution_mode = "force"
 
 nb_execution_excludepatterns = [
-#    "target_notebook.ipynb",
+    "data_analysis.ipynb",
+    "tutorial_forecast.ipynb",
+    "tutorial_nowcast.ipynb"
 ]
 
 latex_engine = "xelatex"

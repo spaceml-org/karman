@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "karman"
-copyright = "2022, 2023, 2024, 2025, Giacomo Acciarini, James Walsh"
+copyright = "2022, 2023, 2024, 2025, Trillium Technologies, Giacomo Acciarini, James Walsh"
 author = "Giacomo Acciarini, James Walsh"
 
 # The full version, including alpha/beta/rc tags

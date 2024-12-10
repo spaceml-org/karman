@@ -23,6 +23,8 @@ Karman is a machine learning (ML) Python package for thermospheric density model
 
 Its main goal is to improve our understanding and modeling of thermospheric density variations due to the Sun's influence. Furthermore, it also has the objective to provide a shared framework where people can design, train and benchmark their own thermospheric density models.
 
+One of our pre-trained forecasting model is also currently being supported and visualized in SWxTREC: https://swx-trec.com/karman. 
+
 ## Goals
 
 * Release of ML models to nowcast & forecast thermospheric density changes from solar and geomagnetic data, trained on precise orbit determination (POD)-derived thremospheric density measurements. 

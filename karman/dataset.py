@@ -23,6 +23,8 @@ class KarmanDataset(Dataset):
         soho_resolution=60,  # 1 hour
         lag_minutes_nrlmsise00=2*24*60,
         nrlmsise00_resolution=60,  # 1 hour
+        lag_minutes_sdoml_latents=2 * 24 * 60,
+        sdoml_latents_resolution=12,
         features_to_exclude_thermo=[
             "all__dates_datetime__",
             "tudelft_thermo__satellite__",
@@ -42,6 +44,7 @@ class KarmanDataset(Dataset):
         features_to_exclude_soho=['all__dates_datetime__',
                                    'source__gaps_flag__'],
         features_to_exclude_nrlmsise00=['all__dates_datetime__'],
+        features_to_exclude_sdoml_latents=['all__dates_datetime__'],
         min_date=pd.to_datetime("2000-07-29 00:59:47"),
         max_date=pd.to_datetime("2024-05-31 23:59:32"),
         max_altitude=np.inf,
@@ -58,6 +61,7 @@ class KarmanDataset(Dataset):
         goes_1405nm_path=None,#"../data/goes_data/goes_1405nm_sw.csv"
         soho_path=None,#"../data/soho_data/soho_data.csv"
         nrlmsise00_path=None,#"../data/nrlmsise00_data/nrlmsise00_time_series.csv"
+        sdoml_latents_path=None,#"../data/sdoml_latents/sdofm_nvae_embeddings_pca_50.csv"
         torch_type=torch.float32,
         target_type="log_density",
         exclude_mask='exclude_mask.pk'
@@ -104,6 +108,7 @@ class KarmanDataset(Dataset):
         self.features_to_exclude_omni_magnetic_field = features_to_exclude_omni_magnetic_field
         self.features_to_exclude_goes = features_to_exclude_goes
         self.features_to_exclude_soho = features_to_exclude_soho
+        self.features_to_exclude_sdoml_latents = features_to_exclude_sdoml_latents
         self.features_to_exclude_nrlmsise00 = features_to_exclude_nrlmsise00
 
         self.min_date = min_date
@@ -227,6 +232,15 @@ class KarmanDataset(Dataset):
                 lag_minutes_soho,
                 soho_resolution,
                 self.features_to_exclude_soho,
+            )
+        if sdoml_latents_path is not None:
+            print("Loading SDO-FM Latents.")
+            self._add_time_series_data(
+                "sdoml_latents",
+                sdoml_latents_path,
+                lag_minutes_sdoml_latents,
+                sdoml_latents_resolution,
+                self.features_to_exclude_sdoml_latents,
             )
         print("Creating thermospheric density dataset")
         self.data_thermo = {}
@@ -451,7 +465,7 @@ class KarmanDataset(Dataset):
         """
         # Data loading:
         self.time_series_data[data_name] = {}
-        if data_name in ["omni_indices", "omni_solar_wind", "omni_magnetic_field","goes_256nm","goes_284nm","goes_304nm","goes_1175nm","goes_1216nm","goes_1335nm","goes_1405nm","soho"]:
+        if data_name in ["omni_indices", "omni_solar_wind", "omni_magnetic_field","goes_256nm","goes_284nm","goes_304nm","goes_1175nm","goes_1216nm","goes_1335nm","goes_1405nm","soho","sdoml_latents"]:
             self.time_series_data[data_name]["data"] = pd.read_csv(data_path)
             # we now index the data by the datetime column, and sort it by the index. The reason is that it is then easier to resample
             self.time_series_data[data_name]["data"].index = pd.to_datetime(self.time_series_data[data_name]["data"]["all__dates_datetime__"])

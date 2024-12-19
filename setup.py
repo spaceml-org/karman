@@ -36,7 +36,7 @@ setup(
     packages=find_packages(),
     url='https://github.com/spaceml-org/karman',
     install_requires=['numpy', 'torch','matplotlib','scikit-learn','pandas','tables','tqdm','pyfiglet>=0.8.0','termcolor','wandb','pyatmos','spaceweather','nrlmsise00','tft-torch'],
-    extras_require={'dev': ['pytest', 'coverage', 'pytest-xdist','netcdf4','cftime','flake8']},
+    extras_require={'dev': ['pytest', 'coverage', 'pytest-xdist','netcdf4','cftime','flake8','huggingface_hub', 'h5py']},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)', 'Programming Language :: Python :: 3'],
     include_package_data=True,
     package_data={

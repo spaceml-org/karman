@@ -17,6 +17,8 @@ dependencies:
   - wandb
   - netcdf4
   - cftime
+  - huggingface_hub
+  - h5py
   - pip:
     - nrlmsise00
     - spaceweather

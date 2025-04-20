@@ -78,6 +78,11 @@ html_static_path = ["_static"]
 
 html_logo = "_static/Karman_logo_white.png"
 
+
+linkcheck_ignore = [
+    r'https://www\.esa\.int/gsp/ACT/team/giacomo_acciarini/',
+]
+
 html_theme_options = {
     "repository_url": "https://github.com/spaceml-org/karman",
     "repository_branch": "main",

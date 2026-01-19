@@ -108,3 +108,9 @@ The authors would like to ackowledge the support and precious feedback of severa
 ## Contact:
 * `giacomo.acciarini@gmail.com`
 * `james@walsh.dev`
+
+# Licence
+
+This project is licenced under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
+
+Copyright 2021-2026 Trillium Technologies Ltd
